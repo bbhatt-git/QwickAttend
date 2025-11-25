@@ -7,10 +7,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
-import { useUser, useFirestore, useFirebaseApp } from '@/firebase';
+import { useUser, useFirestore, useFirebaseApp, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { SECTIONS } from '@/lib/constants';
 
@@ -65,10 +65,10 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
     },
   });
 
-  const handleAddStudent = async (values: z.infer<typeof studentFormSchema>) => {
+  const onSubmit = async (values: z.infer<typeof studentFormSchema>) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in.' });
-      return false;
+      return;
     }
     setIsSubmitting(true);
 
@@ -76,7 +76,6 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
       const studentDocRef = doc(studentsCollection);
       const docId = studentDocRef.id;
-
       const studentId = uuidv4().slice(0, 8).toUpperCase();
 
       const qrData = JSON.stringify({ student_id: studentId, teacher_id: user.uid });
@@ -100,43 +99,25 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
         qrCodeUrl: qrCodeUrl,
         teacherId: user.uid,
       };
-
-      await setDoc(studentDocRef, studentData);
       
+      // Use non-blocking write with error handling piped to the global emitter
+      setDocumentNonBlocking(studentDocRef, studentData, {});
+
       toast({ title: 'Success', description: `${values.name} has been added.` });
       onStudentAdded?.();
-      return true;
+      form.reset({ name: '', class: '', section: undefined });
+      setOpen(false);
 
     } catch (error: any) {
-      console.error("Error adding student: ", error);
+      // This will catch errors from QR generation/upload, but not Firestore writes.
+      console.error("Error preparing student data: ", error);
       toast({ 
         variant: 'destructive', 
         title: 'Error', 
-        description: error.message || 'Failed to add student. Please check your Firestore rules and network connection.' 
+        description: error.message || 'Failed to prepare student data. Please try again.' 
       });
-      return false;
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const onSubmit = async (values: z.infer<typeof studentFormSchema>) => {
-    const success = await handleAddStudent(values);
-    if (success) {
-      form.reset({ name: '', class: '', section: undefined });
-      setOpen(false);
-    }
-  };
-  
-  const addSampleStudent = async () => {
-    const sampleStudent = {
-      name: 'Bhupesh Raj Bhatt',
-      class: '11',
-      section: 'SpaceX' as const,
-    };
-    const success = await handleAddStudent(sampleStudent);
-    if(success) {
-      setOpen(false);
     }
   };
 
@@ -152,7 +133,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
         <DialogHeader>
           <DialogTitle>Add New Student</DialogTitle>
           <DialogDescription>
-            Fill in the details below or add a sample student to get started.
+            Fill in the details below to add a new student to your roster.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -207,11 +188,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
                 </FormItem>
               )}
             />
-            <DialogFooter className="sm:justify-between">
-              <Button type="button" variant="secondary" onClick={addSampleStudent} disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Sample Student
-              </Button>
+            <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Student
