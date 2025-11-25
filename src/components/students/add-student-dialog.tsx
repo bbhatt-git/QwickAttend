@@ -8,10 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
 import { useUser, useFirestore, useFirebaseApp, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { SECTIONS } from '@/lib/constants';
 
@@ -91,14 +89,13 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       const studentDocRef = doc(studentsCollection);
       
       const studentData = {
+        id: studentDocRef.id, // Ensure the document ID is included in the data
         ...values,
         studentId,
         qrCodeUrl,
         teacherId: user.uid,
-        id: studentDocRef.id,
       };
 
-      // Use non-blocking write with error handling
       setDocumentNonBlocking(studentDocRef, studentData, { merge: false });
       
       toast({ title: 'Success', description: `${values.name} has been added.` });
@@ -108,7 +105,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
 
     } catch (error) {
       console.error("Error adding student: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add student. Please check the console for details.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add student. Please check your Firestore rules and network connection.' });
     } finally {
       setIsSubmitting(false);
     }
