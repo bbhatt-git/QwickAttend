@@ -6,10 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
-import { useUser, useFirestore, useFirebaseApp, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useFirebaseApp, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { SECTIONS } from '@/lib/constants';
 
@@ -86,13 +86,14 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       const qrCodeUrl = await getDownloadURL(storageRef);
 
       const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
+      const studentDocRef = doc(studentsCollection);
       
-      addDocumentNonBlocking(studentsCollection, {
+      setDocumentNonBlocking(studentDocRef, {
         ...values,
         studentId,
         qrCodeUrl,
         teacherId: user.uid,
-      });
+      }, { merge: false });
 
       toast({ title: 'Success', description: `${values.name} has been added.` });
       form.reset();

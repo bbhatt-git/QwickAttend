@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, setDoc, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -108,6 +108,7 @@ export function QrScanner() {
         }
         const studentName = studentSnapshot.docs[0].data().name;
 
+        const attendanceDocRef = doc(attendanceCollection);
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
