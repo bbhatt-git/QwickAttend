@@ -31,6 +31,9 @@ export function StudentsTable() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // A simple way to force a refetch
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   const studentsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -38,7 +41,7 @@ export function StudentsTable() {
       collection(firestore, `teachers/${user.uid}/students`),
       orderBy('name', 'asc')
     );
-  }, [firestore, user]);
+  }, [firestore, user, refetchTrigger]);
 
   const { data: students, isLoading } = useCollection<Student>(studentsQuery);
 
@@ -50,6 +53,12 @@ export function StudentsTable() {
       student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [students, searchTerm]);
+
+  const handleStudentAdded = () => {
+    // Incrementing the trigger will cause the useMemoFirebase hook to re-evaluate
+    // and the useCollection hook to refetch the data.
+    setRefetchTrigger(count => count + 1);
+  };
 
   return (
     <Card>
@@ -65,7 +74,7 @@ export function StudentsTable() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
-          <AddStudentDialog />
+          <AddStudentDialog onStudentAdded={handleStudentAdded} />
         </div>
       </CardHeader>
       <CardContent>

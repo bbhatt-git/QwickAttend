@@ -5,13 +5,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { v4 as uuidv4 } from 'uuid';
-import QRCode from 'qrcode';
-import { useUser, useFirestore, useFirebaseApp, setDocumentNonBlocking } from '@/firebase';
+import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
-import { collection, doc } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { SECTIONS } from '@/lib/constants';
 
 import { Button } from '@/components/ui/button';
@@ -50,9 +46,6 @@ const studentFormSchema = z.object({
 
 export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => void }) {
   const { user } = useUser();
-  const firestore = useFirestore();
-  const app = useFirebaseApp();
-  const storage = getStorage(app);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,48 +66,34 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
     setIsSubmitting(true);
 
     try {
-      const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
-      const studentDocRef = doc(studentsCollection);
-      const docId = studentDocRef.id;
-      const studentId = uuidv4().slice(0, 8).toUpperCase();
-
-      const qrData = JSON.stringify({ student_id: studentId, teacher_id: user.uid });
-      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
-        errorCorrectionLevel: 'H',
-        type: 'image/png',
-        quality: 0.92,
-        margin: 1,
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/create-student', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(values),
       });
 
-      const storageRef = ref(storage, `qrcodes/${user.uid}/${studentId}.png`);
-      await uploadString(storageRef, qrCodeDataUrl, 'data_url');
-      const qrCodeUrl = await getDownloadURL(storageRef);
-      
-      const studentData = {
-        id: docId,
-        name: values.name,
-        class: values.class,
-        section: values.section,
-        studentId: studentId,
-        qrCodeUrl: qrCodeUrl,
-        teacherId: user.uid,
-      };
-      
-      // Use non-blocking write with error handling piped to the global emitter
-      setDocumentNonBlocking(studentDocRef, studentData, {});
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create student.');
+      }
 
-      toast({ title: 'Success', description: `${values.name} has been added.` });
+      const result = await response.json();
+
+      toast({ title: 'Success', description: `${result.name} has been added.` });
       onStudentAdded?.();
       form.reset({ name: '', class: '', section: undefined });
       setOpen(false);
 
     } catch (error: any) {
-      // This will catch errors from QR generation/upload, but not Firestore writes.
-      console.error("Error preparing student data: ", error);
-      toast({ 
-        variant: 'destructive', 
-        title: 'Error', 
-        description: error.message || 'Failed to prepare student data. Please try again.' 
+      console.error("Error adding student: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to add student. Please try again.'
       });
     } finally {
       setIsSubmitting(false);

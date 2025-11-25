@@ -41,7 +41,9 @@
         "class",
         "section",
         "studentId",
-        "teacherId"
+        "teacherId",
+        "id",
+        "qrCodeUrl"
       ]
     },
     "Attendance": {
