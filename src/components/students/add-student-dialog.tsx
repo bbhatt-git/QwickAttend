@@ -95,16 +95,10 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
         studentId,
         qrCodeUrl,
         teacherId: user.uid,
+        id: studentDocRef.id,
       };
 
-      setDoc(studentDocRef, studentData).catch(error => {
-        const permissionError = new FirestorePermissionError({
-          path: studentDocRef.path,
-          operation: 'create',
-          requestResourceData: studentData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
+      await setDoc(studentDocRef, studentData);
 
       toast({ title: 'Success', description: `${values.name} has been added.` });
       form.reset();
@@ -112,7 +106,22 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       onStudentAdded?.();
     } catch (error) {
       console.error("Error adding student: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add student. Please try again.' });
+      // This part is important for debugging security rules issues.
+      const studentDocRef = doc(collection(firestore, `teachers/${user.uid}/students`));
+       const studentData = {
+        ...values,
+        studentId: 'temp',
+        qrCodeUrl: 'temp',
+        teacherId: user.uid,
+      };
+      const permissionError = new FirestorePermissionError({
+          path: studentDocRef.path,
+          operation: 'create',
+          requestResourceData: studentData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add student. Check permissions and try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -142,7 +151,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="John Doe" {...field} disabled={isSubmitting} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -155,7 +164,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
                 <FormItem>
                   <FormLabel>Class</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Grade 10" {...field} />
+                    <Input placeholder="e.g., Grade 10" {...field} disabled={isSubmitting}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -167,7 +176,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Section</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a section" />
