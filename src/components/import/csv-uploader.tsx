@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -78,11 +79,11 @@ export default function CsvUploader() {
           }
 
           try {
-            const student_id = uuidv4().slice(0, 8);
-            const qrData = JSON.stringify({ student_id, teacher_id: user.uid });
+            const studentId = uuidv4().slice(0, 8);
+            const qrData = JSON.stringify({ student_id: studentId, teacher_id: user.uid });
             const qrCodeDataUrl = await QRCode.toDataURL(qrData);
 
-            const storageRef = ref(storage, `qrcodes/${user.uid}/${student_id}.png`);
+            const storageRef = ref(storage, `qrcodes/${user.uid}/${studentId}.png`);
             await uploadString(storageRef, qrCodeDataUrl, 'data_url');
             const qrCodeUrl = await getDownloadURL(storageRef);
 
@@ -91,7 +92,8 @@ export default function CsvUploader() {
               name,
               class: className,
               section,
-              studentId: student_id,
+              id: studentDocRef.id,
+              studentId: studentId,
               qrCodeUrl,
               teacherId: user.uid,
             });
@@ -108,10 +110,10 @@ export default function CsvUploader() {
         
         try {
             await batch.commit();
-        } catch (error) {
+        } catch (error: any) {
             failedCount += successCount;
             successCount = 0;
-            errorMessages.push('Failed to save data to the database. This might be a permission issue.');
+            errorMessages.push(`Failed to save data: ${error.message}. This might be a permission issue with Firestore rules.`);
             console.error('Batch commit failed', error);
         }
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -84,12 +85,13 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       const storageRef = ref(storage, `qrcodes/${user.uid}/${studentId}.png`);
       await uploadString(storageRef, qrCodeDataUrl, 'data_url');
       const qrCodeUrl = await getDownloadURL(storageRef);
-
+      
       const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
       const studentDocRef = doc(studentsCollection);
       
       const studentData = {
         ...values,
+        id: studentDocRef.id,
         studentId,
         qrCodeUrl,
         teacherId: user.uid,
@@ -98,13 +100,17 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       await setDoc(studentDocRef, studentData);
       
       toast({ title: 'Success', description: `${values.name} has been added.` });
-      form.reset();
+      form.reset({ name: '', class: '', section: undefined });
       setOpen(false);
       onStudentAdded?.();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding student: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add student. Please check your Firestore rules and network connection.' });
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: error.message || 'Failed to add student. Please check your Firestore rules and network connection.' 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -159,7 +165,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Section</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a section" />
