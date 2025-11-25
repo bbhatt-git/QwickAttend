@@ -5,6 +5,9 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+  SheetHeader
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,7 +43,11 @@ export default function Header() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="sm:max-w-xs">
-          <nav className="grid gap-6 text-lg font-medium">
+          <SheetHeader>
+            <SheetTitle>Navigation Menu</SheetTitle>
+            <SheetDescription className="sr-only">Main navigation links for the dashboard.</SheetDescription>
+          </SheetHeader>
+          <nav className="grid gap-6 text-lg font-medium mt-4">
             <Link
               href="/dashboard"
               className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
