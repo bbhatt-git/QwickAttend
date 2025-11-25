@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase/config';
-import { collection, addDoc, query, where, getDocs, Timestamp, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -14,12 +13,13 @@ const QR_BOX_SIZE = 300;
 export function QrScanner() {
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [scanResult, setScanResult] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!scannerRef.current || html5QrCodeRef.current) return;
+    if (!scannerRef.current || html5QrCodeRef.current || !user) return;
     
     html5QrCodeRef.current = new Html5Qrcode(scannerRef.current.id);
     const html5QrCode = html5QrCodeRef.current;
@@ -79,18 +79,18 @@ export function QrScanner() {
             html5QrCodeRef.current.stop().catch(err => console.error("Failed to stop QR scanner.", err));
         }
     };
-  }, [user, toast]);
+  }, [user, toast, firestore]);
 
-  const markAttendance = async (student_id: string) => {
+  const markAttendance = async (studentId: string) => {
     if (!user) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
     try {
+        const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
         const attendanceQuery = query(
-            collection(db, 'attendance'),
-            where('student_id', '==', student_id),
-            where('date', '==', todayStr),
-            where('teacher_id', '==', user.uid)
+            attendanceCollection,
+            where('studentId', '==', studentId),
+            where('date', '==', todayStr)
         );
         const querySnapshot = await getDocs(attendanceQuery);
 
@@ -99,7 +99,8 @@ export function QrScanner() {
             return;
         }
         
-        const studentQuery = query(collection(db, 'students'), where('student_id', '==', student_id), where('teacher_id', '==', user.uid));
+        const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
+        const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
         const studentSnapshot = await getDocs(studentQuery);
         if(studentSnapshot.empty) {
             toast({ variant: 'destructive', title: 'Student not found', description: 'This student is not in your roster.' });
@@ -107,9 +108,9 @@ export function QrScanner() {
         }
         const studentName = studentSnapshot.docs[0].data().name;
 
-        await addDoc(collection(db, 'attendance'), {
-            student_id,
-            teacher_id: user.uid,
+        addDocumentNonBlocking(attendanceCollection, {
+            studentId,
+            teacherId: user.uid,
             date: todayStr,
             timestamp: Timestamp.now(),
         });

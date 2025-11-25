@@ -5,16 +5,16 @@ export type Student = {
   name: string;
   class: string;
   section: string;
-  student_id: string;
+  studentId: string;
   qrCodeUrl: string;
-  teacher_id: string;
+  teacherId: string;
 };
 
 export type AttendanceRecord = {
   id: string;
-  student_id: string;
+  studentId: string;
   date: string; // 'yyyy-MM-dd'
   timestamp: Timestamp;
-  teacher_id: string;
+  teacherId: string;
   studentName?: string; // Optional: for display purposes
 };

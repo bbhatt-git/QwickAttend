@@ -9,7 +9,7 @@ export default function SignupPage() {
           Create a QwickAttend Account
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Start tracking attendance in minutes.
+          Enter your name, email and password to start tracking attendance in minutes.
         </p>
       </div>
       <SignupForm />

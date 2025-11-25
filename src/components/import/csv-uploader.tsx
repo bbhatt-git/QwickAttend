@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import Papa from 'papaparse';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser, useFirestore, useFirebaseApp } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { SECTIONS } from '@/lib/constants';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
-import { db, storage } from '@/lib/firebase/config';
-import { collection, addDoc, writeBatch } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { collection, doc, writeBatch } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 const sectionSet = new Set(SECTIONS);
 
 export default function CsvUploader() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const app = useFirebaseApp();
+  const storage = getStorage(app);
+
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -55,7 +58,8 @@ export default function CsvUploader() {
         const errorMessages: string[] = [];
         const totalRows = rows.length;
 
-        const batch = writeBatch(db);
+        const batch = writeBatch(firestore);
+        const studentsCollectionRef = collection(firestore, `teachers/${user.uid}/students`);
 
         for (let i = 0; i < totalRows; i++) {
           const row = rows[i];
@@ -82,14 +86,14 @@ export default function CsvUploader() {
             await uploadString(storageRef, qrCodeDataUrl, 'data_url');
             const qrCodeUrl = await getDownloadURL(storageRef);
 
-            const studentDocRef = doc(collection(db, 'students'));
+            const studentDocRef = doc(studentsCollectionRef);
             batch.set(studentDocRef, {
               name,
               class: className,
               section,
               student_id,
               qrCodeUrl,
-              teacher_id: user.uid,
+              teacherId: user.uid,
             });
 
             successCount++;

@@ -6,12 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser, useFirestore, useFirebaseApp, addDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
-import { db, storage } from '@/lib/firebase/config';
-import { collection, addDoc } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { collection } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { SECTIONS } from '@/lib/constants';
 
 import { Button } from '@/components/ui/button';
@@ -49,7 +48,10 @@ const studentFormSchema = z.object({
 });
 
 export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => void }) {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const app = useFirebaseApp();
+  const storage = getStorage(app);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,8 +72,8 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
     setIsSubmitting(true);
 
     try {
-      const student_id = uuidv4().slice(0, 8); // A unique ID for the student
-      const qrData = JSON.stringify({ student_id, teacher_id: user.uid });
+      const studentId = uuidv4().slice(0, 8);
+      const qrData = JSON.stringify({ student_id: studentId, teacher_id: user.uid });
       const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
         errorCorrectionLevel: 'H',
         type: 'image/png',
@@ -79,15 +81,17 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
         margin: 1,
       });
 
-      const storageRef = ref(storage, `qrcodes/${user.uid}/${student_id}.png`);
+      const storageRef = ref(storage, `qrcodes/${user.uid}/${studentId}.png`);
       await uploadString(storageRef, qrCodeDataUrl, 'data_url');
       const qrCodeUrl = await getDownloadURL(storageRef);
 
-      await addDoc(collection(db, 'students'), {
+      const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
+      
+      addDocumentNonBlocking(studentsCollection, {
         ...values,
-        student_id,
+        studentId,
         qrCodeUrl,
-        teacher_id: user.uid,
+        teacherId: user.uid,
       });
 
       toast({ title: 'Success', description: `${values.name} has been added.` });

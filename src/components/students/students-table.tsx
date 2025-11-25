@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { useAuth } from '@/hooks/use-auth';
+import { useState, useMemo } from 'react';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import type { Student } from '@/lib/types';
 import Image from 'next/image';
 
@@ -22,45 +21,32 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddStudentDialog } from '@/components/students/add-student-dialog';
 import { StudentActions } from '@/components/students/student-actions';
 
 export function StudentsTable() {
-  const { user } = useAuth();
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    if (!user) return;
-
-    setLoading(true);
-    const q = query(
-      collection(db, 'students'),
-      where('teacher_id', '==', user.uid),
+  const studentsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, `teachers/${user.uid}/students`),
       orderBy('name', 'asc')
     );
+  }, [firestore, user]);
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const studentsData: Student[] = [];
-      querySnapshot.forEach((doc) => {
-        studentsData.push({ id: doc.id, ...doc.data() } as Student);
-      });
-      setStudents(studentsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
+  const { data: students, isLoading } = useCollection<Student>(studentsQuery);
 
   const filteredStudents = useMemo(() => {
+    if (!students) return [];
     if (!searchTerm) return students;
     return students.filter(student =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.student_id.toLowerCase().includes(searchTerm.toLowerCase())
+      student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [students, searchTerm]);
 
@@ -97,7 +83,7 @@ export function StudentsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell className="hidden sm:table-cell">
@@ -122,7 +108,7 @@ export function StudentsTable() {
                     />
                   </TableCell>
                   <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell>{student.student_id}</TableCell>
+                  <TableCell>{student.studentId}</TableCell>
                   <TableCell>{student.class} - {student.section}</TableCell>
                   <TableCell>
                     <StudentActions student={student} />

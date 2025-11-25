@@ -4,8 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { format, isValid } from 'date-fns';
 import { Calendar as CalendarIcon, Download, BrainCircuit, Loader2 } from 'lucide-react';
 import Papa from 'papaparse';
-import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase/config';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { analyzeAbsenteeism, AnalyzeAbsenteeismOutput } from '@/ai/flows/analyze-absenteeism';
@@ -40,7 +39,8 @@ import { cn } from '@/lib/utils';
 
 
 export default function AttendanceView() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [students, setStudents] = useState<Student[]>([]);
@@ -53,12 +53,12 @@ export default function AttendanceView() {
   useEffect(() => {
     if (!user) return;
     const fetchStudents = async () => {
-      const q = query(collection(db, 'students'), where('teacher_id', '==', user.uid), orderBy('name'));
+      const q = query(collection(firestore, `teachers/${user.uid}/students`), orderBy('name'));
       const querySnapshot = await getDocs(q);
       setStudents(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student)));
     };
     fetchStudents();
-  }, [user]);
+  }, [user, firestore]);
   
   useEffect(() => {
     if (!user || !date || !isValid(date)) return;
@@ -66,8 +66,7 @@ export default function AttendanceView() {
     const dateStr = format(date, 'yyyy-MM-dd');
     const fetchAttendance = async () => {
       const q = query(
-        collection(db, 'attendance'),
-        where('teacher_id', '==', user.uid),
+        collection(firestore, `teachers/${user.uid}/attendance`),
         where('date', '==', dateStr)
       );
       const querySnapshot = await getDocs(q);
@@ -75,14 +74,14 @@ export default function AttendanceView() {
       setLoading(false);
     };
     fetchAttendance();
-  }, [user, date]);
+  }, [user, date, firestore]);
 
   const { presentStudents, absentStudents } = useMemo(() => {
-    const presentStudentIds = new Set(attendance.map(a => a.student_id));
+    const presentStudentIds = new Set(attendance.map(a => a.studentId));
     const present = students
-      .filter(s => presentStudentIds.has(s.student_id))
-      .map(s => ({ ...s, attendanceTime: attendance.find(a => a.student_id === s.student_id)?.timestamp.toDate() }));
-    const absent = students.filter(s => !presentStudentIds.has(s.student_id));
+      .filter(s => presentStudentIds.has(s.studentId))
+      .map(s => ({ ...s, attendanceTime: attendance.find(a => a.studentId === s.studentId)?.timestamp.toDate() }));
+    const absent = students.filter(s => !presentStudentIds.has(s.studentId));
     return { presentStudents: present, absentStudents: absent };
   }, [students, attendance]);
   
@@ -91,7 +90,7 @@ export default function AttendanceView() {
       const isPresent = presentStudents.some(ps => ps.id === student.id);
       return {
         'Student Name': student.name,
-        'Student ID': student.student_id,
+        'Student ID': student.studentId,
         'Class': student.class,
         'Section': student.section,
         'Status': isPresent ? 'Present' : 'Absent',
@@ -117,10 +116,10 @@ export default function AttendanceView() {
     setIsAnalysisDialogOpen(true);
 
     try {
-        const attendanceQuery = query(collection(db, 'attendance'), where('teacher_id', '==', user.uid));
+        const attendanceQuery = query(collection(firestore, `teachers/${user.uid}/attendance`));
         const attendanceSnapshot = await getDocs(attendanceQuery);
         const records = attendanceSnapshot.docs.map(d => ({
-            student_id: d.data().student_id,
+            student_id: d.data().studentId,
             date: d.data().date,
             timestamp: d.data().timestamp.toMillis()
         }));
@@ -185,7 +184,7 @@ export default function AttendanceView() {
             <ScrollArea className="h-72">
             {loading ? <Skeleton className="h-full w-full"/> : presentStudents.length > 0 ? (
                 <ul className="space-y-2">
-                    {presentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-green-100 dark:bg-green-900/50">{s.name} <span className="text-xs text-muted-foreground ml-2">{format(s.attendanceTime!, 'p')}</span></li>)}
+                    {presentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-green-100 dark:bg-green-900/50">{s.name} <span className="text-xs text-muted-foreground ml-2">{s.attendanceTime ? format(s.attendanceTime, 'p') : ''}</span></li>)}
                 </ul>
             ) : <p className="text-sm text-muted-foreground text-center pt-10">No students were present.</p>}
             </ScrollArea>

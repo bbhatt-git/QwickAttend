@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs,getCountFromServer } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { useAuth } from '@/hooks/use-auth';
+import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, UserX } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardStats() {
-  const { user } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [stats, setStats] = useState({ total: 0, present: 0, absent: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -22,15 +22,17 @@ export default function DashboardStats() {
       try {
         const todayStr = format(new Date(), 'yyyy-MM-dd');
 
+        const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
+        const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
+
         // Get total students
-        const studentsQuery = query(collection(db, 'students'), where('teacher_id', '==', user.uid));
+        const studentsQuery = query(studentsCollection);
         const studentsSnapshot = await getCountFromServer(studentsQuery);
         const totalStudents = studentsSnapshot.data().count;
 
         // Get present students
         const attendanceQuery = query(
-          collection(db, 'attendance'),
-          where('teacher_id', '==', user.uid),
+          attendanceCollection,
           where('date', '==', todayStr)
         );
         const attendanceSnapshot = await getCountFromServer(attendanceQuery);
@@ -51,7 +53,7 @@ export default function DashboardStats() {
     };
 
     fetchStats();
-  }, [user]);
+  }, [user, firestore]);
 
   if (loading) {
     return (

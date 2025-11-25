@@ -30,9 +30,9 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal, QrCode, Edit, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { db, storage } from '@/lib/firebase/config';
-import { doc, deleteDoc } from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
+import { useFirestore, useFirebaseApp, deleteDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { getStorage, ref, deleteObject } from 'firebase/storage';
 import type { Student } from '@/lib/types';
 
 // NOTE: Edit functionality is not implemented in this component as it's a larger feature.
@@ -43,15 +43,17 @@ export function StudentActions({ student }: { student: Student }) {
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const app = useFirebaseApp();
+  const storage = getStorage(app);
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      // Delete Firestore document
-      await deleteDoc(doc(db, 'students', student.id));
+      const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
+      deleteDocumentNonBlocking(studentDocRef);
 
-      // Delete QR code from Storage
-      const qrCodeRef = ref(storage, `qrcodes/${student.teacher_id}/${student.student_id}.png`);
+      const qrCodeRef = ref(storage, `qrcodes/${student.teacherId}/${student.studentId}.png`);
       await deleteObject(qrCodeRef);
 
       toast({ title: 'Success', description: `${student.name} has been deleted.` });
@@ -94,7 +96,7 @@ export function StudentActions({ student }: { student: Student }) {
           <DialogHeader>
             <DialogTitle>QR Code for {student.name}</DialogTitle>
             <DialogDescription>
-              Student ID: {student.student_id}. Scan this to mark attendance.
+              Student ID: {student.studentId}. Scan this to mark attendance.
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-4">
