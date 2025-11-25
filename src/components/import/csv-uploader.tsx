@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from 'react';
@@ -89,11 +90,11 @@ export default function CsvUploader() {
 
             const studentDocRef = doc(studentsCollectionRef);
             batch.set(studentDocRef, {
+              id: studentDocRef.id,
               name,
               class: className,
               section,
-              id: studentDocRef.id,
-              studentId: studentId,
+              studentId,
               qrCodeUrl,
               teacherId: user.uid,
             });

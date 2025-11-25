@@ -89,9 +89,12 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
       const studentDocRef = doc(studentsCollection);
       
+      // Corrected student data object
       const studentData = {
-        ...values,
         id: studentDocRef.id,
+        name: values.name,
+        class: values.class,
+        section: values.section,
         studentId,
         qrCodeUrl,
         teacherId: user.uid,
