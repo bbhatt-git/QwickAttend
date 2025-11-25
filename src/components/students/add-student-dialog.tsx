@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
-import { useUser, useFirestore, useFirebaseApp } from '@/firebase';
+import { useUser, useFirestore, useFirebaseApp, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -98,30 +98,17 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
         id: studentDocRef.id,
       };
 
-      await setDoc(studentDocRef, studentData);
-
+      // Use non-blocking write with error handling
+      setDocumentNonBlocking(studentDocRef, studentData, { merge: false });
+      
       toast({ title: 'Success', description: `${values.name} has been added.` });
       form.reset();
       setOpen(false);
       onStudentAdded?.();
+
     } catch (error) {
       console.error("Error adding student: ", error);
-      // This part is important for debugging security rules issues.
-      const studentDocRef = doc(collection(firestore, `teachers/${user.uid}/students`));
-       const studentData = {
-        ...values,
-        studentId: 'temp',
-        qrCodeUrl: 'temp',
-        teacherId: user.uid,
-      };
-      const permissionError = new FirestorePermissionError({
-          path: studentDocRef.path,
-          operation: 'create',
-          requestResourceData: studentData,
-      });
-      errorEmitter.emit('permission-error', permissionError);
-
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add student. Check permissions and try again.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add student. Please check the console for details.' });
     } finally {
       setIsSubmitting(false);
     }
