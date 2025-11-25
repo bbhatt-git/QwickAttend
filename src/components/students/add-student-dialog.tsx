@@ -65,7 +65,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof studentFormSchema>) => {
+  const handleAddStudent = async (values: z.infer<typeof studentFormSchema>) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in.' });
       return;
@@ -89,7 +89,6 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
       const studentDocRef = doc(studentsCollection);
       
-      // Corrected student data object
       const studentData = {
         id: studentDocRef.id,
         name: values.name,
@@ -103,9 +102,8 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       await setDoc(studentDocRef, studentData);
       
       toast({ title: 'Success', description: `${values.name} has been added.` });
-      form.reset({ name: '', class: '', section: undefined });
-      setOpen(false);
       onStudentAdded?.();
+      return true;
 
     } catch (error: any) {
       console.error("Error adding student: ", error);
@@ -114,8 +112,29 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
         title: 'Error', 
         description: error.message || 'Failed to add student. Please check your Firestore rules and network connection.' 
       });
+      return false;
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof studentFormSchema>) => {
+    const success = await handleAddStudent(values);
+    if (success) {
+      form.reset({ name: '', class: '', section: undefined });
+      setOpen(false);
+    }
+  };
+
+  const addSampleStudent = async () => {
+    const sampleStudent = {
+      name: 'Bhupesh Raj Bhatt',
+      class: '11',
+      section: 'SpaceX' as const,
+    };
+    const success = await handleAddStudent(sampleStudent);
+    if(success) {
+      setOpen(false);
     }
   };
 
@@ -131,7 +150,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
         <DialogHeader>
           <DialogTitle>Add New Student</DialogTitle>
           <DialogDescription>
-            Fill in the details below to add a new student to your roster.
+            Fill in the details below or add a sample student to get started.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -186,7 +205,11 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="sm:justify-between">
+              <Button type="button" variant="secondary" onClick={addSampleStudent} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Sample Student
+              </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Student
