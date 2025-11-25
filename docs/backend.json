@@ -1,0 +1,178 @@
+{
+  "entities": {
+    "Student": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Student",
+      "type": "object",
+      "description": "Represents a student in the QwickAttend application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Student entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The student's full name."
+        },
+        "class": {
+          "type": "string",
+          "description": "The class the student belongs to."
+        },
+        "section": {
+          "type": "string",
+          "description": "The section the student belongs to (e.g., SpaceX, FusionX, Tesla)."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "A unique ID assigned to the student."
+        },
+        "qrCodeUrl": {
+          "type": "string",
+          "description": "URL of the student's QR code image stored in Firebase Storage."
+        },
+        "teacherId": {
+          "type": "string",
+          "description": "Reference to Teacher. (Relationship: Teacher 1:N Student)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "class",
+        "section",
+        "studentId",
+        "qrCodeUrl",
+        "teacherId"
+      ]
+    },
+    "Attendance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Attendance",
+      "type": "object",
+      "description": "Represents a student's attendance record for a specific date.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Attendance entity."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to Student. (Relationship: Student 1:N Attendance)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the attendance record in 'yyyy-MM-dd' format.",
+          "format": "date"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp when the attendance was recorded.",
+          "format": "date-time"
+        },
+        "teacherId": {
+          "type": "string",
+          "description": "Reference to Teacher. (Relationship: Teacher 1:N Attendance)"
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "date",
+        "timestamp",
+        "teacherId"
+      ]
+    },
+    "Teacher": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Teacher",
+      "type": "object",
+      "description": "Represents a teacher using the QwickAttend application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Teacher entity. This corresponds to the Firebase Auth UID."
+        },
+        "email": {
+          "type": "string",
+          "description": "The teacher's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The teacher's name"
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/teachers/{teacherId}",
+        "definition": {
+          "entityName": "Teacher",
+          "schema": {
+            "$ref": "#/backend/entities/Teacher"
+          },
+          "description": "Stores teacher profiles.  The 'teacherId' corresponds to the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "teacherId",
+              "description": "The Firebase Auth UID of the teacher."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teachers/{teacherId}/students/{studentId}",
+        "definition": {
+          "entityName": "Student",
+          "schema": {
+            "$ref": "#/backend/entities/Student"
+          },
+          "description": "Stores student data associated with a teacher. Includes denormalized 'teacherId' for authorization independence.",
+          "params": [
+            {
+              "name": "teacherId",
+              "description": "The Firebase Auth UID of the teacher."
+            },
+            {
+              "name": "studentId",
+              "description": "Unique identifier for the student."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teachers/{teacherId}/attendance/{attendanceId}",
+        "definition": {
+          "entityName": "Attendance",
+          "schema": {
+            "$ref": "#/backend/entities/Attendance"
+          },
+          "description": "Stores attendance records for students, associated with a teacher. Includes denormalized 'teacherId' for authorization independence.",
+          "params": [
+            {
+              "name": "teacherId",
+              "description": "The Firebase Auth UID of the teacher."
+            },
+            {
+              "name": "attendanceId",
+              "description": "Unique identifier for the attendance record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to provide a secure and scalable solution for the QwickAttend application, adhering to the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs.  The core of the structure revolves around the teacher's ID, ensuring that teachers only have access to the data they own. \n\n**Authorization Independence:** This is achieved by storing the `teacherId` directly within both the `students` and `attendance` documents. This denormalization avoids the need for complex `get()` calls in security rules, ensuring that authorization checks are atomic and efficient.  For instance, when a teacher creates a student, the `teacherId` field is set to the teacher's UID.  When recording attendance, the `teacherId` is again included. This duplication of the `teacherId` enables us to validate ownership directly at the document level without needing to traverse up the hierarchy.\n\n**QAPs (Rules Are Not Filters):**  The structure facilitates secure `list` operations.  Since all documents within a collection share the same security requirements (homogenous security posture), we can confidently apply rules that allow listing only documents where the `teacherId` matches the requesting user's `uid`.  The segregation is achieved by relying on path-based ownership for students and attendance, preventing unauthorized data access during listing operations.\n\n**Path-Based Ownership:** We employ path-based ownership using the `/teachers/{teacherId}` hierarchy.  Under each teacher's document, we store their students and attendance records. This structure inherently links data to the teacher who owns it, simplifying security rules and ensuring data isolation.\n\n**Invariants:** The `teacherId` field acts as an invariant, linking student and attendance data to a specific teacher and preventing unauthorized modification or access. Timestamps are included in the attendance records to maintain the integrity of attendance events. The use of explicit IDs ensures uniqueness and simplifies data retrieval and management.\n\n**Global Roles (DBAC):** The design relies on the `request.auth.uid` for authorization and stores the `teacherId` on each document within student and attendance collections. This approach eliminates the need for custom claims, as roles are implicitly defined by the data ownership, determined by matching the authenticated user's `uid` with the `teacherId` on each student and attendance documents. \n\nThis structure balances security, scalability, and ease of maintenance, making it well-suited for the QwickAttend application."
+  }
+}

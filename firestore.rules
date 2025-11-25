@@ -1,17 +1,129 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict, multi-tenant ownership model centered around teachers.
+ * Each teacher is treated as a distinct tenant with exclusive control over their own data.
+ *
+ * Data Structure: All data is hierarchically organized under the /teachers/{teacherId} path,
+ * where {teacherId} corresponds to a teacher's Firebase Authentication UID. This path-based
+ * segregation ensures that all of a teacher's students and attendance records are nested
+ * directly under their unique identifier, creating a clean and secure data boundary.
+ *
+ * Key Security Decisions:
+ * - Default Deny: All access is denied by default. Rules explicitly grant permissions.
+ * - Authentication Required: No anonymous access is permitted; all requests must come from a signed-in user.
+ * - No User Listing: It is not possible to list all teacher profiles in the system.
+ * - Strict Ownership: A teacher can only read or write data that exists within their own
+ *   /teachers/{teacherId} document tree. Cross-tenant access is strictly forbidden.
+ *
+ * Denormalization for Authorization: To ensure fast and secure authorization, the `teacherId` is
+ * denormalized (copied) into every `student` and `attendance` document. This avoids slow and costly
+ * cross-document `get()` calls in security rules. When a teacher creates a student, the rule
+ * verifies that the `teacherId` in the new document matches the teacher's UID, locking in ownership.
+ *
+ * Structural Segregation: The use of distinct user-scoped collections
+ * (e.g., /teachers/{teacherId}/students) provides a strong, performant, and secure boundary
+ * between different teachers' data, making it impossible for list queries to accidentally leak data.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Teachers can only manage their own students
-    match /students/{studentId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.teacher_id;
-      allow create: if request.auth != null && request.resource.data.teacher_id == request.auth.uid;
+
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Teachers can only manage their own attendance records
-    match /attendance/{attendanceId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.teacher_id;
-      allow create: if request.auth != null && request.resource.data.teacher_id == request.auth.uid;
+    /**
+     * Validates if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if a document exists. Used to protect against modifying or deleting
+     * non-existent documents.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Combines ownership and existence checks for update/delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && isExistingDoc();
+    }
+    
+    /**
+     * Ensures the `teacherId` field in a new document matches the owner's UID.
+     * This is crucial for establishing the ownership link on create.
+     */
+    function hasValidTeacherIdOnCreate(teacherId) {
+      return request.resource.data.teacherId == teacherId;
+    }
+    
+    /**
+     * Ensures the `teacherId` field cannot be changed after creation.
+     * This prevents re-assigning a document to a different owner.
+     */
+    function teacherIdIsImmutable() {
+      return request.resource.data.teacherId == resource.data.teacherId;
+    }
+
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
+
+    /**
+     * @description Governs access to a teacher's own profile document.
+     * @path /teachers/{teacherId}
+     * @allow A signed-in teacher (auth.uid='teacher123') creating their own profile at `/teachers/teacher123`.
+     * @deny An anonymous user trying to read a profile, or teacher 'teacherABC' trying to update '/teachers/teacherXYZ'.
+     * @principle Enforces self-creation and strict ownership of a user's root document. Listing all teachers is disabled.
+     */
+    match /teachers/{teacherId} {
+      allow get: if isOwner(teacherId);
+      allow list: if false;
+      allow create: if isOwner(teacherId) && request.resource.data.id == teacherId;
+      allow update: if isExistingOwner(teacherId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(teacherId);
+    }
+
+    /**
+     * @description Secures student documents, ensuring they can only be managed by the owning teacher.
+     * @path /teachers/{teacherId}/students/{studentId}
+     * @allow A signed-in teacher (auth.uid='teacher123') creating a student under `/teachers/teacher123/students/studentABC`.
+     * @deny Teacher 'teacher456' trying to list students from `/teachers/teacher123/students`.
+     * @principle Restricts access to a user's own data tree and enforces relational integrity via a denormalized `teacherId`.
+     */
+    match /teachers/{teacherId}/students/{studentId} {
+      allow get: if isOwner(teacherId);
+      allow list: if isOwner(teacherId);
+      allow create: if isOwner(teacherId) && hasValidTeacherIdOnCreate(teacherId);
+      allow update: if isExistingOwner(teacherId) && teacherIdIsImmutable();
+      allow delete: if isExistingOwner(teacherId);
+    }
+
+    /**
+     * @description Secures attendance records, ensuring they can only be managed by the owning teacher.
+     * @path /teachers/{teacherId}/attendance/{attendanceId}
+     * @allow A signed-in teacher (auth.uid='teacher123') creating an attendance record under `/teachers/teacher123/attendance/recordXYZ`.
+     * @deny An anonymous user trying to delete an attendance record.
+     * @principle Restricts access to a user's own data tree and enforces relational integrity via a denormalized `teacherId`.
+     */
+    match /teachers/{teacherId}/attendance/{attendanceId} {
+      allow get: if isOwner(teacherId);
+      allow list: if isOwner(teacherId);
+      allow create: if isOwner(teacherId) && hasValidTeacherIdOnCreate(teacherId);
+      allow update: if isExistingOwner(teacherId) && teacherIdIsImmutable();
+      allow delete: if isExistingOwner(teacherId);
     }
   }
 }
