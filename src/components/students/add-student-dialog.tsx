@@ -6,10 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
-import { useUser, useFirestore, useFirebaseApp, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useFirebaseApp } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { SECTIONS } from '@/lib/constants';
 
@@ -88,12 +90,21 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
       const studentDocRef = doc(studentsCollection);
       
-      setDocumentNonBlocking(studentDocRef, {
+      const studentData = {
         ...values,
         studentId,
         qrCodeUrl,
         teacherId: user.uid,
-      }, { merge: false });
+      };
+
+      setDoc(studentDocRef, studentData).catch(error => {
+        const permissionError = new FirestorePermissionError({
+          path: studentDocRef.path,
+          operation: 'create',
+          requestResourceData: studentData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
 
       toast({ title: 'Success', description: `${values.name} has been added.` });
       form.reset();

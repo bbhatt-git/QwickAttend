@@ -91,7 +91,7 @@ export default function CsvUploader() {
               name,
               class: className,
               section,
-              student_id,
+              studentId: student_id,
               qrCodeUrl,
               teacherId: user.uid,
             });
@@ -111,7 +111,7 @@ export default function CsvUploader() {
         } catch (error) {
             failedCount += successCount;
             successCount = 0;
-            errorMessages.push('Failed to save data to the database.');
+            errorMessages.push('Failed to save data to the database. This might be a permission issue.');
             console.error('Batch commit failed', error);
         }
 
