@@ -68,7 +68,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
   const handleAddStudent = async (values: z.infer<typeof studentFormSchema>) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in.' });
-      return;
+      return false;
     }
     setIsSubmitting(true);
 
@@ -77,7 +77,6 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       const studentDocRef = doc(studentsCollection);
       const docId = studentDocRef.id;
 
-      // Use a consistent student ID for QR code and Firestore document
       const studentId = uuidv4().slice(0, 8).toUpperCase();
 
       const qrData = JSON.stringify({ student_id: studentId, teacher_id: user.uid });
@@ -128,7 +127,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       setOpen(false);
     }
   };
-
+  
   const addSampleStudent = async () => {
     const sampleStudent = {
       name: 'Bhupesh Raj Bhatt',
@@ -210,6 +209,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
             />
             <DialogFooter className="sm:justify-between">
               <Button type="button" variant="secondary" onClick={addSampleStudent} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Sample Student
               </Button>
               <Button type="submit" disabled={isSubmitting}>
