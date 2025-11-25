@@ -7,7 +7,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, UserCheck, UserX, ArrowUpRight, PlusCircle } from 'lucide-react';
+import { Users, QrCode, CalendarClock, FileUp, ArrowUpRight } from 'lucide-react';
 import DashboardStats from '@/components/dashboard/dashboard-stats';
 
 const quickActions = [
