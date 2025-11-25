@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Teachers can only manage their own students
+    match /students/{studentId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.teacher_id;
+      allow create: if request.auth != null && request.resource.data.teacher_id == request.auth.uid;
+    }
+
+    // Teachers can only manage their own attendance records
+    match /attendance/{attendanceId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.teacher_id;
+      allow create: if request.auth != null && request.resource.data.teacher_id == request.auth.uid;
+    }
+  }
+}

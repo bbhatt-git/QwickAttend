@@ -1,5 +1,5 @@
 {
-  "name": "nextn",
+  "name": "qwickattend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -43,9 +43,12 @@
     "embla-carousel-react": "^8.6.0",
     "firebase": "^11.9.1",
     "genkit": "^1.20.0",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
+    "papaparse": "^5.4.1",
     "patch-package": "^8.0.0",
+    "qrcode": "^1.5.3",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -53,12 +56,16 @@
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^10.0.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/papaparse": "^5.3.14",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/uuid": "^10.0.0",
     "genkit-cli": "^1.20.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
