@@ -80,7 +80,10 @@ export default function CsvUploader() {
           }
 
           try {
-            const studentId = uuidv4().slice(0, 8);
+            const studentDocRef = doc(studentsCollectionRef);
+            const docId = studentDocRef.id;
+            const studentId = uuidv4().slice(0, 8).toUpperCase();
+            
             const qrData = JSON.stringify({ student_id: studentId, teacher_id: user.uid });
             const qrCodeDataUrl = await QRCode.toDataURL(qrData);
 
@@ -88,9 +91,8 @@ export default function CsvUploader() {
             await uploadString(storageRef, qrCodeDataUrl, 'data_url');
             const qrCodeUrl = await getDownloadURL(storageRef);
 
-            const studentDocRef = doc(studentsCollectionRef);
             batch.set(studentDocRef, {
-              id: studentDocRef.id,
+              id: docId,
               name,
               class: className,
               section,

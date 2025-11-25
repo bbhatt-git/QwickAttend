@@ -73,7 +73,13 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
     setIsSubmitting(true);
 
     try {
-      const studentId = uuidv4().slice(0, 8);
+      const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
+      const studentDocRef = doc(studentsCollection);
+      const docId = studentDocRef.id;
+
+      // Use a consistent student ID for QR code and Firestore document
+      const studentId = uuidv4().slice(0, 8).toUpperCase();
+
       const qrData = JSON.stringify({ student_id: studentId, teacher_id: user.uid });
       const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
         errorCorrectionLevel: 'H',
@@ -86,16 +92,13 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       await uploadString(storageRef, qrCodeDataUrl, 'data_url');
       const qrCodeUrl = await getDownloadURL(storageRef);
       
-      const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
-      const studentDocRef = doc(studentsCollection);
-      
       const studentData = {
-        id: studentDocRef.id,
+        id: docId,
         name: values.name,
         class: values.class,
         section: values.section,
-        studentId,
-        qrCodeUrl,
+        studentId: studentId,
+        qrCodeUrl: qrCodeUrl,
         teacherId: user.uid,
       };
 
@@ -207,7 +210,6 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
             />
             <DialogFooter className="sm:justify-between">
               <Button type="button" variant="secondary" onClick={addSampleStudent} disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Sample Student
               </Button>
               <Button type="submit" disabled={isSubmitting}>
