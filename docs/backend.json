@@ -36,12 +36,10 @@
         }
       },
       "required": [
-        "id",
         "name",
         "class",
         "section",
         "studentId",
-        "qrCodeUrl",
         "teacherId"
       ]
     },
