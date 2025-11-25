@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -99,13 +100,17 @@ export function StudentsTable() {
               filteredStudents.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="hidden sm:table-cell">
-                    <Image
-                      alt="QR Code"
-                      className="aspect-square rounded-md object-cover"
-                      height="64"
-                      src={student.qrCodeUrl}
-                      width="64"
-                    />
+                    {student.qrCodeUrl ? (
+                      <Image
+                        alt="QR Code"
+                        className="aspect-square rounded-md object-cover"
+                        height="64"
+                        src={student.qrCodeUrl}
+                        width="64"
+                      />
+                    ) : (
+                      <Skeleton className="h-16 w-16 rounded-md" />
+                    )}
                   </TableCell>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.studentId}</TableCell>
