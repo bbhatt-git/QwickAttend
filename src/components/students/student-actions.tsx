@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -34,6 +35,7 @@ import { useFirestore, useFirebaseApp, deleteDocumentNonBlocking } from '@/fireb
 import { doc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import type { Student } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 // NOTE: Edit functionality is not implemented in this component as it's a larger feature.
 // A similar dialog to AddStudentDialog would be created for editing.
@@ -53,8 +55,15 @@ export function StudentActions({ student }: { student: Student }) {
       const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
       deleteDocumentNonBlocking(studentDocRef);
 
-      const qrCodeRef = ref(storage, `qrcodes/${student.teacherId}/${student.studentId}.png`);
-      await deleteObject(qrCodeRef);
+      if (student.qrCodeUrl) {
+        const qrCodeRef = ref(storage, `qrcodes/${student.teacherId}/${student.studentId}.png`);
+        await deleteObject(qrCodeRef).catch((error) => {
+          // It's okay if the file doesn't exist, so we can ignore "object-not-found" errors.
+          if (error.code !== 'storage/object-not-found') {
+            throw error;
+          }
+        });
+      }
 
       toast({ title: 'Success', description: `${student.name} has been deleted.` });
       setIsDeleteAlertOpen(false);
@@ -100,13 +109,20 @@ export function StudentActions({ student }: { student: Student }) {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-4">
-            <Image
-              src={student.qrCodeUrl}
-              alt={`QR Code for ${student.name}`}
-              width={256}
-              height={256}
-              className="rounded-lg border"
-            />
+            {student.qrCodeUrl ? (
+              <Image
+                src={student.qrCodeUrl}
+                alt={`QR Code for ${student.name}`}
+                width={256}
+                height={256}
+                className="rounded-lg border"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+                <Skeleton className="h-64 w-64 rounded-lg" />
+                <p>QR Code not available or still generating.</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
