@@ -156,6 +156,7 @@ export function StudentsTable() {
               <TableHead className="hidden sm:table-cell">Student ID</TableHead>
               <TableHead className="hidden md:table-cell">Class</TableHead>
               <TableHead className="hidden md:table-cell">Section</TableHead>
+              <TableHead className="hidden lg:table-cell">Contact</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -169,6 +170,7 @@ export function StudentsTable() {
                   <TableCell className="hidden sm:table-cell"><Skeleton className="h-6 w-24" /></TableCell>
                   <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-20" /></TableCell>
                   <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell className="hidden lg:table-cell"><Skeleton className="h-6 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                 </TableRow>
               ))
@@ -179,6 +181,7 @@ export function StudentsTable() {
                   <TableCell className="hidden sm:table-cell">{student.studentId}</TableCell>
                   <TableCell className="hidden md:table-cell">{student.class}</TableCell>
                   <TableCell className="hidden md:table-cell">{student.section}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{student.contact || '-'}</TableCell>
                   <TableCell>
                     <StudentActions student={student} onActionComplete={handleActionComplete} />
                   </TableCell>
@@ -186,7 +189,7 @@ export function StudentsTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No students found for the selected criteria.
                 </TableCell>
               </TableRow>
