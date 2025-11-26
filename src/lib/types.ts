@@ -10,5 +10,6 @@ export type AttendanceRecord = {
   date: string; // 'yyyy-MM-dd'
   timestamp: Timestamp;
   teacherId: string;
+  status: 'present' | 'on_leave';
   studentName?: string; // Optional: for display purposes
 };

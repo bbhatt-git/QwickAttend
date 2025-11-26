@@ -3,11 +3,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, getDocs, Timestamp, setDoc, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
+import { addDocumentNonBlocking } from '@/firebase';
 
 const QR_BOX_SIZE = 300;
 
@@ -101,8 +102,18 @@ export function QrScanner() {
         const querySnapshot = await getDocs(attendanceQuery);
 
         if (!querySnapshot.empty) {
-            toast({ variant: 'default', title: 'Already Present', description: 'This student has already been marked present today.' });
-            return true;
+            const existingDoc = querySnapshot.docs[0];
+            const status = existingDoc.data().status;
+            const message = status === 'on_leave' ? 'This student was marked as on leave. Status updated to present.' : 'This student has already been marked present today.';
+
+            if (status !== 'present') {
+                 await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
+                 toast({ title: 'Status Updated', description: message });
+                 return false;
+            } else {
+                 toast({ variant: 'default', title: 'Already Present', description: message });
+                 return true;
+            }
         }
         
         const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
@@ -114,12 +125,12 @@ export function QrScanner() {
         }
         const studentName = studentSnapshot.docs[0].data().name;
 
-        const attendanceDocRef = doc(attendanceCollection);
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
             date: todayStr,
             timestamp: Timestamp.now(),
+            status: 'present'
         });
         toast({ title: 'Success', description: `${studentName} marked as present.` });
         return false;

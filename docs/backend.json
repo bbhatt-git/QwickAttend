@@ -73,6 +73,14 @@
         "teacherId": {
           "type": "string",
           "description": "Reference to Teacher. (Relationship: Teacher 1:N Attendance)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the attendance record.",
+          "enum": [
+            "present",
+            "on_leave"
+          ]
         }
       },
       "required": [
@@ -80,7 +88,8 @@
         "studentId",
         "date",
         "timestamp",
-        "teacherId"
+        "teacherId",
+        "status"
       ]
     },
     "Teacher": {

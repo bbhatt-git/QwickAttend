@@ -3,11 +3,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { format, isValid } from 'date-fns';
-import { Calendar as CalendarIcon, Download, BrainCircuit, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, BrainCircuit, Loader2, UserCheck, UserX, UserMinus } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { analyzeAbsenteeism, AnalyzeAbsenteeismOutput } from '@/ai/flows/analyze-absenteeism';
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +51,7 @@ export default function AttendanceView() {
   const [isAnalysisDialogOpen, setIsAnalysisDialogOpen] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeAbsenteeismOutput | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -76,28 +77,79 @@ export default function AttendanceView() {
       setLoading(false);
     };
     fetchAttendance();
-  }, [user, date, firestore]);
+  }, [user, date, firestore, refetchTrigger]);
 
-  const { presentStudents, absentStudents } = useMemo(() => {
-    const presentStudentIds = new Set(attendance.map(a => a.studentId));
-    const present = students
-      .filter(s => presentStudentIds.has(s.studentId))
-      .map(s => ({ ...s, attendanceTime: attendance.find(a => a.studentId === s.studentId)?.timestamp.toDate() }));
-    const absent = students.filter(s => !presentStudentIds.has(s.studentId));
-    return { presentStudents: present, absentStudents: absent };
+  const { presentStudents, absentStudents, onLeaveStudents } = useMemo(() => {
+    const present = attendance.filter(a => a.status === 'present');
+    const onLeave = attendance.filter(a => a.status === 'on_leave');
+    
+    const presentStudentIds = new Set(present.map(a => a.studentId));
+    const onLeaveStudentIds = new Set(onLeave.map(a => a.studentId));
+
+    const presentWithName = students
+        .filter(s => presentStudentIds.has(s.studentId))
+        .map(s => {
+            const att = present.find(a => a.studentId === s.studentId);
+            return {...s, attendanceTime: att?.timestamp.toDate()};
+        });
+
+    const onLeaveWithName = students
+        .filter(s => onLeaveStudentIds.has(s.studentId))
+        .map(s => ({ ...s, attendanceId: onLeave.find(a => a.studentId === s.studentId)!.id }));
+
+    const absent = students.filter(s => !presentStudentIds.has(s.studentId) && !onLeaveStudentIds.has(s.studentId));
+
+    return { presentStudents: presentWithName, absentStudents: absent, onLeaveStudents: onLeaveWithName };
   }, [students, attendance]);
   
+  const handleMarkAsLeave = async (student: Student) => {
+    if (!user || !date) return;
+    try {
+        const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
+        await addDoc(attendanceCollection, {
+            studentId: student.studentId,
+            teacherId: user.uid,
+            date: format(date, 'yyyy-MM-dd'),
+            timestamp: Timestamp.now(),
+            status: 'on_leave'
+        });
+        toast({ title: 'Success', description: `${student.name} marked as on leave.` });
+        setRefetchTrigger(c => c + 1);
+    } catch (error) {
+        console.error("Error marking as leave:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not mark as leave. Please try again.' });
+    }
+  }
+
+  const handleUndoLeave = async (student: { id: string, attendanceId: string, name: string }) => {
+    if (!user) return;
+     try {
+        const attendanceDocRef = doc(firestore, `teachers/${user.uid}/attendance/${student.attendanceId}`);
+        await deleteDoc(attendanceDocRef);
+        toast({ title: 'Success', description: `Leave for ${student.name} has been removed.` });
+        setRefetchTrigger(c => c + 1);
+    } catch (error) {
+        console.error("Error undoing leave:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not undo leave. Please try again.' });
+    }
+  }
+
   const handleExport = () => {
     if (!date) return;
     const bsDate = new NepaliDate(date).format('YYYY-MM-DD');
     const dataToExport = students.map(student => {
       const isPresent = presentStudents.some(ps => ps.id === student.id);
+      const isOnLeave = onLeaveStudents.some(ols => ols.id === student.id);
+      let status = 'Absent';
+      if (isPresent) status = 'Present';
+      if (isOnLeave) status = 'On Leave';
+
       return {
         'Student Name': student.name,
         'Student ID': student.studentId,
         'Class': student.class,
         'Section': student.section,
-        'Status': isPresent ? 'Present' : 'Absent',
+        'Status': status,
         'Attendance Time': isPresent ? format(presentStudents.find(ps => ps.id === student.id)!.attendanceTime!, 'HH:mm:ss') : 'N/A',
         'Date (AD)': format(date, 'yyyy-MM-dd'),
         'Date (BS)': bsDate,
@@ -190,17 +242,17 @@ export default function AttendanceView() {
             <Button onClick={handleAnalyze}><BrainCircuit className="mr-2 h-4 w-4" /> Analyze</Button>
         </div>
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Present ({presentStudents.length})</CardTitle>
-            <CardDescription>Students marked as present on the selected date.</CardDescription>
+            <CardTitle className='flex items-center gap-2'><UserCheck className="text-green-500" /> Present ({presentStudents.length})</CardTitle>
+            <CardDescription>Students marked as present.</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-72">
             {loading ? <Skeleton className="h-full w-full"/> : presentStudents.length > 0 ? (
                 <ul className="space-y-2">
-                    {presentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-green-100 dark:bg-green-900/50">{s.name} <span className="text-xs text-muted-foreground ml-2">{s.attendanceTime ? format(s.attendanceTime, 'p') : ''}</span></li>)}
+                    {presentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-green-100 dark:bg-green-900/50 flex justify-between items-center">{s.name} <span className="text-xs text-muted-foreground">{s.attendanceTime ? format(s.attendanceTime, 'p') : ''}</span></li>)}
                 </ul>
             ) : <p className="text-sm text-muted-foreground text-center pt-10">No students were present.</p>}
             </ScrollArea>
@@ -208,16 +260,31 @@ export default function AttendanceView() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Absent ({absentStudents.length})</CardTitle>
-            <CardDescription>Students not marked as present on the selected date.</CardDescription>
+            <CardTitle className='flex items-center gap-2'><UserMinus className="text-yellow-500"/> On Leave ({onLeaveStudents.length})</CardTitle>
+            <CardDescription>Students marked as on leave.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-72">
+            {loading ? <Skeleton className="h-full w-full"/> : onLeaveStudents.length > 0 ? (
+                <ul className="space-y-2">
+                    {onLeaveStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-yellow-100 dark:bg-yellow-900/50 flex justify-between items-center">{s.name} <Button variant="ghost" size="sm" onClick={() => handleUndoLeave(s)}>Undo</Button></li>)}
+                </ul>
+            ) : <p className="text-sm text-muted-foreground text-center pt-10">No students are on leave.</p>}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'><UserX className="text-red-500" /> Absent ({absentStudents.length})</CardTitle>
+            <CardDescription>Students not marked present or on leave.</CardDescription>
           </CardHeader>
           <CardContent>
           <ScrollArea className="h-72">
              {loading ? <Skeleton className="h-full w-full"/> : absentStudents.length > 0 ? (
                 <ul className="space-y-2">
-                    {absentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50">{s.name}</li>)}
+                    {absentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50 flex justify-between items-center">{s.name} <Button variant="outline" size="sm" onClick={() => handleMarkAsLeave(s)}>Mark Leave</Button></li>)}
                 </ul>
-            ) : <p className="text-sm text-muted-foreground text-center pt-10">All students were present!</p>}
+            ) : <p className="text-sm text-muted-foreground text-center pt-10">All students are accounted for!</p>}
             </ScrollArea>
           </CardContent>
         </Card>
