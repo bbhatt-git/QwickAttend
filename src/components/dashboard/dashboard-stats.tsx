@@ -56,11 +56,11 @@ export default function DashboardStats() {
     };
   }, [user, firestore]);
 
-  const absentStudents = totalStudents - presentStudents;
+  const absentStudents = Math.max(0, totalStudents - presentStudents);
   const stats = {
     total: totalStudents,
     present: presentStudents,
-    absent: absentStudents < 0 ? 0 : absentStudents,
+    absent: absentStudents,
   };
 
   const isLoading = studentsLoading || attendanceLoading;
