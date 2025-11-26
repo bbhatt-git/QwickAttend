@@ -9,13 +9,14 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, QrCode, CalendarClock, ArrowUpRight } from 'lucide-react';
+import { Users, QrCode, CalendarClock, ArrowUpRight, AppWindow } from 'lucide-react';
 import WelcomeHeader from '@/components/dashboard/welcome-header';
 
 const quickActions = [
   { href: '/dashboard/students', title: 'Manage Students', description: 'Add, edit, or view student details.', icon: Users },
   { href: '/dashboard/scan', title: 'Scan QR Code', description: 'Start an attendance session.', icon: QrCode },
   { href: '/dashboard/records', title: 'View Records', description: 'Check historical attendance data.', icon: CalendarClock },
+  { href: '/dashboard/generate-qr', title: 'Generate QR Code', description: 'Create a QR code for a student ID.', icon: AppWindow },
 ];
 
 export default function DashboardPage() {
