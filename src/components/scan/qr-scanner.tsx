@@ -2,16 +2,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, getDocs, Timestamp, setDoc, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const QR_BOX_SIZE = 300;
 
 export function QrScanner() {
   const scannerRef = useRef<HTMLDivElement>(null);
@@ -19,8 +19,7 @@ export function QrScanner() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [scanResult, setScanResult] = useState<string | null>(null);
-  const [showSuccessIndicator, setShowSuccessIndicator] = useState(false);
+  const [scanResult, setScanResult] = useState<{ text: string; type: 'success' | 'duplicate' | 'error' } | null>(null);
   const processingRef = useRef(false);
 
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -44,28 +43,14 @@ export function QrScanner() {
     });
     html5QrCodeRef.current = html5QrCode;
     
-    const qrCodeSuccessCallback = (decodedText: string, decodedResult: any) => {
+    const qrCodeSuccessCallback = (decodedText: string) => {
         if(processingRef.current) return;
         
         processingRef.current = true;
-
-        // --- Instant Feedback ---
-        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-        setScanResult(decodedText);
-        setShowSuccessIndicator(true);
-        // --- End Instant Feedback ---
-
-        // Asynchronous processing
         markAttendance(decodedText);
-        
-        setTimeout(() => {
-          setScanResult(null);
-          setShowSuccessIndicator(false);
-          processingRef.current = false;
-        }, 3000);
     };
     
-    const config = { fps: 10, qrbox: { width: QR_BOX_SIZE, height: QR_BOX_SIZE }, supportedScanTypes: [] };
+    const config = { fps: 10, supportedScanTypes: [] };
     const cameraConfig = { facingMode: "environment" };
 
     html5QrCode.start(
@@ -90,7 +75,10 @@ export function QrScanner() {
   }, [user, toast, firestore]);
 
   const markAttendance = async (studentId: string): Promise<void> => {
-    if (!user) return;
+    if (!user) {
+        processingRef.current = false;
+        return;
+    }
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
     try {
@@ -99,6 +87,7 @@ export function QrScanner() {
         const studentSnapshot = await getDocs(studentQuery);
         if(studentSnapshot.empty) {
             errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+            setScanResult({ text: studentId, type: 'error' });
             toast({ variant: 'destructive', title: 'Student not found', description: 'This student is not in your roster.' });
             return;
         }
@@ -118,16 +107,18 @@ export function QrScanner() {
             
             if (status === 'present') {
                  duplicateAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+                 setScanResult({ text: studentId, type: 'duplicate' });
                  toast({ variant: 'default', title: 'Already Present', description: `Student ${studentName} has already been marked present.` });
             } else {
                  await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
-                 // Success sound already played, so we just show toast
+                 successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+                 setScanResult({ text: studentId, type: 'success' });
                  toast({ title: 'Status Updated', description: `${studentName} status updated to present.` });
             }
             return;
         }
         
-        // Success sound already played
+        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
@@ -135,13 +126,26 @@ export function QrScanner() {
             timestamp: Timestamp.now(),
             status: 'present'
         });
+        setScanResult({ text: studentId, type: 'success' });
         toast({ title: 'Success', description: `${studentName} marked as present.` });
 
     } catch (error) {
         console.error("Error marking attendance:", error);
         errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        setScanResult({ text: studentId, type: 'error' });
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark attendance. Please try again.' });
+    } finally {
+        setTimeout(() => {
+          setScanResult(null);
+          processingRef.current = false;
+        }, 3000);
     }
+  };
+
+  const indicatorColor = {
+    success: 'bg-green-500',
+    duplicate: 'bg-yellow-500',
+    error: 'bg-red-500'
   };
 
   return (
@@ -149,23 +153,32 @@ export function QrScanner() {
       <CardContent className="p-0 relative">
         <div id="qr-scanner" ref={scannerRef} className="w-full rounded-xl overflow-hidden aspect-square bg-muted"></div>
         
-        {showSuccessIndicator && (
+        {scanResult && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-24 h-24 bg-green-500/80 rounded-full animate-ping-slow opacity-75"></div>
+            <div className={cn("w-24 h-24 rounded-full animate-ping-slow opacity-75", indicatorColor[scanResult.type])}></div>
           </div>
         )}
 
         {scanResult && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-lg text-sm font-mono pointer-events-none">
-            {scanResult}
+          <div className={cn(
+            "absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm font-mono pointer-events-none flex items-center gap-2",
+            indicatorColor[scanResult.type],
+            "text-white"
+          )}>
+            {scanResult.type === 'success' && <CheckCircle className="h-4 w-4" />}
+            {scanResult.type === 'duplicate' && <AlertTriangle className="h-4 w-4" />}
+            {scanResult.type === 'error' && <XCircle className="h-4 w-4" />}
+            {scanResult.text}
           </div>
         )}
 
+        <div className="absolute inset-0 pointer-events-none border-[10px] border-black/10 rounded-xl" />
+
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white/50 rounded-tl-lg"></div>
-          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white/50 rounded-tr-lg"></div>
-          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white/50 rounded-bl-lg"></div>
-          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white/50 rounded-br-lg"></div>
+          <div className="absolute top-8 left-8 w-10 h-10 border-t-4 border-l-4 border-white/80 rounded-tl-lg"></div>
+          <div className="absolute top-8 right-8 w-10 h-10 border-t-4 border-r-4 border-white/80 rounded-tr-lg"></div>
+          <div className="absolute bottom-8 left-8 w-10 h-10 border-b-4 border-l-4 border-white/80 rounded-bl-lg"></div>
+          <div className="absolute bottom-8 right-8 w-10 h-10 border-b-4 border-r-4 border-white/80 rounded-br-lg"></div>
         </div>
 
       </CardContent>
