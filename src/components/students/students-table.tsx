@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import type { Student } from '@/lib/types';
@@ -43,7 +43,15 @@ export function StudentsTable() {
     );
   }, [firestore, user, refetchTrigger]);
 
-  const { data: students, isLoading } = useCollection<Student>(studentsQuery);
+  const { data: studentsFromHook, isLoading } = useCollection<Omit<Student, 'teacherId'>>(studentsQuery);
+
+  const students = useMemo(() => {
+    if (!studentsFromHook || !user) return [];
+    return studentsFromHook.map(student => ({
+      ...student,
+      teacherId: user.uid,
+    }));
+  }, [studentsFromHook, user]);
 
   const filteredStudents = useMemo(() => {
     if (!students) return [];
