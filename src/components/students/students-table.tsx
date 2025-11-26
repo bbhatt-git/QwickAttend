@@ -1,11 +1,9 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import type { Student } from '@/lib/types';
-import Image from 'next/image';
 
 import {
   Table,
@@ -43,7 +41,7 @@ export function StudentsTable() {
     );
   }, [firestore, user, refetchTrigger]);
 
-  const { data: studentsFromHook, isLoading } = useCollection<Omit<Student, 'teacherId'>>(studentsQuery);
+  const { data: studentsFromHook, isLoading } = useCollection<Student>(studentsQuery);
 
   const students = useMemo(() => {
     if (!studentsFromHook || !user) return [];
@@ -91,7 +89,8 @@ export function StudentsTable() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Student ID</TableHead>
-              <TableHead>Class & Section</TableHead>
+              <TableHead>Class</TableHead>
+              <TableHead>Section</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -103,7 +102,8 @@ export function StudentsTable() {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-6 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                 </TableRow>
               ))
@@ -112,7 +112,8 @@ export function StudentsTable() {
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.studentId}</TableCell>
-                  <TableCell>{student.class} - {student.section}</TableCell>
+                  <TableCell>{student.class}</TableCell>
+                  <TableCell>{student.section}</TableCell>
                   <TableCell>
                     <StudentActions student={student} onActionComplete={handleActionComplete} />
                   </TableCell>
@@ -120,7 +121,7 @@ export function StudentsTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   No students found. Add your first student to get started.
                 </TableCell>
               </TableRow>
