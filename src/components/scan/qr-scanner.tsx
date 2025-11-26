@@ -19,12 +19,17 @@ export function QrScanner() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [scanResult, setScanResult] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const processingRef = useRef(false); // To prevent concurrent processing
 
+  const successAudioRef = useRef<HTMLAudioElement | null>(null);
+  const duplicateAudioRef = useRef<HTMLAudioElement | null>(null);
+  const errorAudioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
-    // Pre-load the audio
-    audioRef.current = new Audio('/sounds/beep.mp3');
+    // Pre-load the audio files for instant playback
+    successAudioRef.current = new Audio('/sounds/success.mp3');
+    duplicateAudioRef.current = new Audio('/sounds/duplicate.mp3');
+    errorAudioRef.current = new Audio('/sounds/error.mp3');
   }, []);
 
   useEffect(() => {
@@ -39,22 +44,23 @@ export function QrScanner() {
         processingRef.current = true;
         setScanResult(decodedText);
         
-        // Play sound immediately for instant feedback
-        audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-        
         try {
             const studentId = decodedText;
             if (studentId) {
                 await markAttendance(studentId);
             } else {
+                errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
                 toast({ variant: 'destructive', title: 'Invalid QR Code', description: 'The QR code appears to be empty.' });
             }
         } catch (error) {
+            errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
             toast({ variant: 'destructive', title: 'Scan Error', description: 'Could not process the QR code.' });
         } finally {
-            // No need to pause/resume, just be ready for the next scan after processing
-            setScanResult(null);
-            processingRef.current = false;
+            // Visual feedback is reset quickly, ready for the next scan
+            setTimeout(() => {
+              setScanResult(null);
+              processingRef.current = false;
+            }, 500); // Keep visual feedback for half a second
         }
     };
     
@@ -97,6 +103,18 @@ export function QrScanner() {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
     try {
+        // First, check if student exists
+        const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
+        const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
+        const studentSnapshot = await getDocs(studentQuery);
+        if(studentSnapshot.empty) {
+            errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+            toast({ variant: 'destructive', title: 'Student not found', description: 'This student is not in your roster.' });
+            return;
+        }
+        const studentName = studentSnapshot.docs[0].data().name;
+
+        // Then, check attendance
         const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
         const attendanceQuery = query(
             attendanceCollection,
@@ -110,24 +128,18 @@ export function QrScanner() {
             const status = existingDoc.data().status;
             
             if (status === 'present') {
-                 toast({ variant: 'default', title: 'Already Present', description: 'This student has already been marked present today.' });
-            } else {
+                 duplicateAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+                 toast({ variant: 'default', title: 'Already Present', description: `Student ${studentName} has already been marked present.` });
+            } else { // 'on_leave'
                  await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
-                 toast({ title: 'Status Updated', description: 'Student status updated to present.' });
+                 successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+                 toast({ title: 'Status Updated', description: `${studentName} status updated to present.` });
             }
             return;
         }
-        
-        const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
-        const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
-        const studentSnapshot = await getDocs(studentQuery);
-        if(studentSnapshot.empty) {
-            toast({ variant: 'destructive', title: 'Student not found', description: 'This student is not in your roster.' });
-            return;
-        }
-        const studentName = studentSnapshot.docs[0].data().name;
 
-        // Use non-blocking write
+        // If no attendance record exists, create a new one
+        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
@@ -139,6 +151,7 @@ export function QrScanner() {
 
     } catch (error) {
         console.error("Error marking attendance:", error);
+        errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark attendance. Please try again.' });
     }
   };
