@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { format, isValid, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
+import { format, isValid, startOfMonth, endOfMonth } from 'date-fns';
 import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
@@ -49,6 +49,7 @@ export default function AttendanceView() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [sectionFilter, setSectionFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('all');
 
   useEffect(() => {
     if (!user) return;
@@ -75,13 +76,22 @@ export default function AttendanceView() {
     };
     fetchAttendance();
   }, [user, date, firestore, refetchTrigger]);
+
+  const uniqueClasses = useMemo(() => {
+    const classes = new Set(allStudents.map(s => s.class));
+    return Array.from(classes);
+  }, [allStudents]);
   
   const students = useMemo(() => {
-    if (sectionFilter === 'all') {
-      return allStudents;
+    let filteredStudents = allStudents;
+    if (sectionFilter !== 'all') {
+      filteredStudents = filteredStudents.filter(student => student.section === sectionFilter);
     }
-    return allStudents.filter(student => student.section === sectionFilter);
-  }, [allStudents, sectionFilter]);
+    if (classFilter !== 'all') {
+      filteredStudents = filteredStudents.filter(student => student.class === classFilter);
+    }
+    return filteredStudents;
+  }, [allStudents, sectionFilter, classFilter]);
 
 
   const { presentStudents, absentStudents, onLeaveStudents } = useMemo(() => {
@@ -163,7 +173,10 @@ export default function AttendanceView() {
   
       const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
   
-      const headers = ['Class', 'Student ID', 'Student Name', ...dateColumns];
+      let headers = ['Student ID', 'Student Name', ...dateColumns];
+      if (classFilter === 'all') {
+        headers.unshift('Class');
+      }
       if (sectionFilter === 'all') {
         headers.splice(1, 0, 'Section');
       }
@@ -172,10 +185,12 @@ export default function AttendanceView() {
 
       const dataToExport = studentsForReport.map(student => {
         const rowData: { [key: string]: string | number } = {
-          'Class': student.class,
           'Student ID': student.studentId,
           'Student Name': student.name,
         };
+        if (classFilter === 'all') {
+          rowData['Class'] = student.class;
+        }
         if (sectionFilter === 'all') {
           rowData['Section'] = student.section;
         }
@@ -216,9 +231,15 @@ export default function AttendanceView() {
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      const downloadFileName = sectionFilter === 'all' 
-        ? `monthly_attendance_${bsYear}-${bsMonth}.csv`
-        : `monthly_attendance_${bsYear}-${bsMonth}_${sectionFilter}.csv`;
+      let downloadFileName = `monthly_attendance_${bsYear}-${bsMonth}`;
+      if (classFilter !== 'all') {
+        downloadFileName += `_${classFilter.replace(' ', '_')}`;
+      }
+      if (sectionFilter !== 'all') {
+        downloadFileName += `_${sectionFilter}`;
+      }
+      downloadFileName += '.csv';
+
       link.setAttribute('href', url);
       link.setAttribute('download', downloadFileName);
       link.style.visibility = 'hidden';
@@ -239,7 +260,7 @@ export default function AttendanceView() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -263,6 +284,17 @@ export default function AttendanceView() {
               />
             </PopoverContent>
           </Popover>
+          <Select value={classFilter} onValueChange={setClassFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {uniqueClasses.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           <Select value={sectionFilter} onValueChange={setSectionFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by section" />
@@ -350,5 +382,3 @@ export default function AttendanceView() {
     </div>
   );
 }
-
-    
