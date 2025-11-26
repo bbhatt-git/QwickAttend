@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Suspense>
         </main>
         <footer className="text-center p-4 text-muted-foreground text-sm">
-          Developed by Bhupesh Raj Bhatt
+          Developed by Bhupesh Raj Bhatt | Contact: 9761184935
         </footer>
       </div>
     </div>
