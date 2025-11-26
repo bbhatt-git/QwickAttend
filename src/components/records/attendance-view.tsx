@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { format, isValid, startOfMonth, endOfMonth, getDaysInMonth, getDate } from 'date-fns';
+import { format, isValid, startOfMonth, endOfMonth, getDaysInMonth, getDate, getDay } from 'date-fns';
 import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
@@ -127,20 +127,25 @@ export default function AttendanceView() {
     setIsDownloading(true);
 
     try {
-      const monthStart = startOfMonth(date);
-      const monthEnd = endOfMonth(date);
+      const adMonthStart = startOfMonth(date);
+      const adMonthEnd = endOfMonth(date);
       
       const attendanceQuery = query(
         collection(firestore, `teachers/${user.uid}/attendance`),
-        where('date', '>=', format(monthStart, 'yyyy-MM-dd')),
-        where('date', '<=', format(monthEnd, 'yyyy-MM-dd'))
+        where('date', '>=', format(adMonthStart, 'yyyy-MM-dd')),
+        where('date', '<=', format(adMonthEnd, 'yyyy-MM-dd'))
       );
       
       const attendanceSnapshot = await getDocs(attendanceQuery);
       const monthlyAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
       
-      const daysInMonth = getDaysInMonth(date);
-      const dateColumns = Array.from({ length: daysInMonth }, (_, i) => format(new Date(date.getFullYear(), date.getMonth(), i + 1), 'dd'));
+      const adDaysInMonth = getDaysInMonth(date);
+      const bsDate = new NepaliDate(date);
+      const bsMonth = bsDate.getMonth() + 1;
+      const bsYear = bsDate.getYear();
+      const bsDaysInMonth = new NepaliDate(bsYear, bsMonth, 0).getDate();
+
+      const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
 
       const headers = ['Class', 'Section', 'Student ID', 'Student Name', ...dateColumns];
       
@@ -152,16 +157,30 @@ export default function AttendanceView() {
           'Student Name': student.name,
         };
 
-        dateColumns.forEach(day => {
-          const currentDateStr = format(new Date(date.getFullYear(), date.getMonth(), parseInt(day)), 'yyyy-MM-dd');
+        dateColumns.forEach(bsDay => {
+          const bsDateToCheck = new NepaliDate(bsYear, bsMonth -1, parseInt(bsDay));
+          const adDateToCheck = bsDateToCheck.toJsDate();
+          
+          if (adDateToCheck.getMonth() !== adMonthStart.getMonth()) {
+            row[bsDay] = "-";
+            return;
+          }
+
+          if (bsDateToCheck.getDay() === 6) { // 6 corresponds to Saturday in NepaliDate
+            row[bsDay] = 'Saturday';
+            return;
+          }
+          
+          const adDateStr = format(adDateToCheck, 'yyyy-MM-dd');
+          
           const attendanceRecord = monthlyAttendance.find(
-            a => a.studentId === student.studentId && a.date === currentDateStr
+            a => a.studentId === student.studentId && a.date === adDateStr
           );
 
           if (attendanceRecord) {
-            row[day] = attendanceRecord.status === 'present' ? 'Present' : 'On leave';
+            row[bsDay] = attendanceRecord.status === 'present' ? 'Present' : 'On leave';
           } else {
-            row[day] = 'Absent';
+            row[bsDay] = 'Absent';
           }
         });
         return row;
@@ -175,7 +194,7 @@ export default function AttendanceView() {
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `monthly_attendance_${format(date, 'yyyy-MM')}.csv`);
+      link.setAttribute('download', `monthly_attendance_${bsYear}-${bsMonth}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -282,4 +301,5 @@ export default function AttendanceView() {
   );
 }
 
+    
     
