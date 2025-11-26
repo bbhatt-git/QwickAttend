@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, getDocs, Timestamp, setDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, setDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -72,29 +72,37 @@ export function QrScanner() {
     };
     
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-    const cameraConfig = { facingMode: "environment" };
 
-    html5QrCode.start(
-        cameraConfig,
-        config,
-        qrCodeSuccessCallback,
-        undefined
-    ).catch(err => {
-        console.error("Failed to start QR scanner:", err);
-        html5QrCode.start(
-          { }, // Use any available camera
+    const startScanner = async () => {
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
           config,
           qrCodeSuccessCallback,
           undefined
-        ).catch(err => {
-            console.error("Failed to start any camera:", err);
-            toast({ 
-                variant: "destructive", 
-                title: "Camera Error", 
-                description: "Could not start camera. Please ensure you have given permission in your browser settings." 
-            });
-        })
-    });
+        );
+      } catch (err) {
+        console.warn("Failed to start rear camera, trying any camera:", err);
+        try {
+          await html5QrCode.start(
+            {}, // Use any available camera
+            config,
+            qrCodeSuccessCallback,
+            undefined
+          );
+        } catch (finalErr) {
+          console.error("Failed to start any camera:", finalErr);
+          toast({
+            variant: "destructive",
+            title: "Camera Error",
+            description: "Could not start camera. Please ensure you have given permission in your browser settings."
+          });
+        }
+      }
+    };
+
+    startScanner();
+
 
     return () => {
       if (html5QrCodeRef.current?.isScanning) {
@@ -172,9 +180,9 @@ export function QrScanner() {
   };
 
   return (
-    <Card className="w-full max-w-md bg-transparent shadow-none border-none">
+    <Card className="w-full max-w-md shadow-lg rounded-xl overflow-hidden border-4 border-primary/20 bg-muted">
       <CardContent className="p-0 relative">
-        <div id="qr-scanner" ref={scannerRef} className="w-full rounded-xl overflow-hidden aspect-square bg-muted"></div>
+        <div id="qr-scanner" ref={scannerRef} className="w-full rounded-lg overflow-hidden aspect-square bg-muted"></div>
         
         {scanResult && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -195,8 +203,6 @@ export function QrScanner() {
           </div>
         )}
 
-        <div className="absolute inset-0 pointer-events-none border-[10px] border-black/10 rounded-xl" />
-
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-8 left-8 w-10 h-10 border-t-4 border-l-4 border-white/80 rounded-tl-lg"></div>
           <div className="absolute top-8 right-8 w-10 h-10 border-t-4 border-r-4 border-white/80 rounded-tr-lg"></div>
@@ -208,5 +214,3 @@ export function QrScanner() {
     </Card>
   );
 }
-
-    
