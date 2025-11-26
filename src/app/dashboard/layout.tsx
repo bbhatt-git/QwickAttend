@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Made with <Heart className="h-4 w-4 text-red-500 fill-current" /> by Bhupesh Raj Bhatt
             </div>
             <a href="mailto:hello@bbhatt.com.np" className="hover:text-primary transition-colors">
-              hello@bbhatt.com.np
+              Email: hello@bbhatt.com.np
             </a>
             <div className="mt-1 flex items-center gap-4">
               <Link href="https://www.facebook.com/share/1BnJr4X2Ec/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
