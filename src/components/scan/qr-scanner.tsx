@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, getDocs, Timestamp, addDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, addDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, AlertTriangle, X } from 'lucide-react';
@@ -42,7 +42,7 @@ export function QrScanner() {
         return;
     }
     
-    const html5QrCode = new Html5Qrcode(scannerRef.current.id);
+    const html5QrCode = new Html5Qrcode(scannerRef.current.id, false); // verbose = false
     html5QrCodeRef.current = html5QrCode;
     
     const qrCodeSuccessCallback = (decodedText: string) => {
@@ -52,7 +52,7 @@ export function QrScanner() {
         handleAttendance(decodedText);
     };
     
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    const config = { fps: 10, qrbox: { width: 250, height: 250 }, showTorchButtonIfSupported: true };
 
     const startScanner = async () => {
       try {
@@ -150,7 +150,7 @@ export function QrScanner() {
         setTimeout(() => {
           setLastResult(null);
           processingRef.current = false;
-        }, 3000);
+        }, 2000);
     }
   };
 
@@ -170,7 +170,7 @@ export function QrScanner() {
   return (
     <Card className="w-full max-w-md shadow-lg rounded-xl overflow-hidden border-4 border-primary/20 bg-muted">
       <CardContent className="p-0 relative">
-        <div id="qr-scanner" ref={scannerRef} className="w-full rounded-lg overflow-hidden aspect-square bg-slate-900"></div>
+        <div id="qr-scanner" ref={scannerRef} className="w-full rounded-lg overflow-hidden aspect-square bg-slate-900 [&>div>button]:hidden [&>div>span>button]:hidden"></div>
         
         {lastResult && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/50">
@@ -181,13 +181,6 @@ export function QrScanner() {
             </div>
           </div>
         )}
-        
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-8 left-8 w-10 h-10 border-t-4 border-l-4 border-white/80 rounded-tl-lg"></div>
-          <div className="absolute top-8 right-8 w-10 h-10 border-t-4 border-r-4 border-white/80 rounded-tr-lg"></div>
-          <div className="absolute bottom-8 left-8 w-10 h-10 border-b-4 border-l-4 border-white/80 rounded-bl-lg"></div>
-          <div className="absolute bottom-8 right-8 w-10 h-10 border-b-4 border-r-4 border-white/80 rounded-br-lg"></div>
-        </div>
 
       </CardContent>
     </Card>
