@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, getDocs, Timestamp, setDoc, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
-import { addDocumentNonBlocking } from '@/firebase';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const QR_BOX_SIZE = 300;
 
@@ -20,6 +20,7 @@ export function QrScanner() {
   const { toast } = useToast();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const processingRef = useRef(false); // To prevent concurrent processing
 
   useEffect(() => {
     // Pre-load the audio
@@ -33,30 +34,27 @@ export function QrScanner() {
     const html5QrCode = html5QrCodeRef.current;
     
     const qrCodeSuccessCallback = async (decodedText: string, decodedResult: any) => {
-        if(html5QrCode.getState() !== Html5QrcodeScannerState.SCANNING) return;
+        if(processingRef.current) return;
         
-        html5QrCode.pause();
+        processingRef.current = true;
         setScanResult(decodedText);
+        
+        // Play sound immediately for instant feedback
+        audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         
         try {
             const studentId = decodedText;
             if (studentId) {
-                const alreadyPresent = await markAttendance(studentId);
-                if (!alreadyPresent) {
-                  audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-                }
+                await markAttendance(studentId);
             } else {
                 toast({ variant: 'destructive', title: 'Invalid QR Code', description: 'The QR code appears to be empty.' });
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Scan Error', description: 'Could not process the QR code.' });
         } finally {
-            setTimeout(() => {
-                setScanResult(null);
-                if (html5QrCode.getState() === Html5QrcodeScannerState.PAUSED) {
-                    html5QrCode.resume();
-                }
-            }, 2000);
+            // No need to pause/resume, just be ready for the next scan after processing
+            setScanResult(null);
+            processingRef.current = false;
         }
     };
     
@@ -70,26 +68,32 @@ export function QrScanner() {
                 qrCodeSuccessCallback,
                 undefined
             ).catch(err => {
-                console.error("Failed to start QR scanner with back camera, trying front.", err);
+                console.error("Failed to start QR scanner with back camera, trying default.", err);
                 html5QrCode.start(
                     cameras[0].id,
                     config,
                     qrCodeSuccessCallback,
                     undefined
-                ).catch(err_front => console.error("Failed to start QR scanner with any camera.", err_front));
+                ).catch(err_front => {
+                  toast({ variant: "destructive", title: "Camera Error", description: "Could not start the camera. Please check permissions."})
+                  console.error("Failed to start QR scanner with any camera.", err_front)
+                });
             });
         }
-    }).catch(err => console.error("Failed to get cameras.", err));
+    }).catch(err => {
+      toast({ variant: "destructive", title: "Camera Error", description: "Could not find any cameras on this device."})
+      console.error("Failed to get cameras.", err)
+    });
 
     return () => {
-        if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        if (html5QrCodeRef.current?.getState() === Html5QrcodeScannerState.SCANNING) {
             html5QrCodeRef.current.stop().catch(err => console.error("Failed to stop QR scanner.", err));
         }
     };
   }, [user, toast, firestore]);
 
-  const markAttendance = async (studentId: string): Promise<boolean> => {
-    if (!user) return true;
+  const markAttendance = async (studentId: string): Promise<void> => {
+    if (!user) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
     try {
@@ -104,16 +108,14 @@ export function QrScanner() {
         if (!querySnapshot.empty) {
             const existingDoc = querySnapshot.docs[0];
             const status = existingDoc.data().status;
-            const message = status === 'on_leave' ? 'This student was marked as on leave. Status updated to present.' : 'This student has already been marked present today.';
-
-            if (status !== 'present') {
-                 await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
-                 toast({ title: 'Status Updated', description: message });
-                 return false;
+            
+            if (status === 'present') {
+                 toast({ variant: 'default', title: 'Already Present', description: 'This student has already been marked present today.' });
             } else {
-                 toast({ variant: 'default', title: 'Already Present', description: message });
-                 return true;
+                 await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
+                 toast({ title: 'Status Updated', description: 'Student status updated to present.' });
             }
+            return;
         }
         
         const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
@@ -121,10 +123,11 @@ export function QrScanner() {
         const studentSnapshot = await getDocs(studentQuery);
         if(studentSnapshot.empty) {
             toast({ variant: 'destructive', title: 'Student not found', description: 'This student is not in your roster.' });
-            return true;
+            return;
         }
         const studentName = studentSnapshot.docs[0].data().name;
 
+        // Use non-blocking write
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
@@ -133,18 +136,24 @@ export function QrScanner() {
             status: 'present'
         });
         toast({ title: 'Success', description: `${studentName} marked as present.` });
-        return false;
+
     } catch (error) {
         console.error("Error marking attendance:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark attendance. Please try again.' });
-        return true;
     }
   };
 
   return (
     <Card className="w-full max-w-md">
-      <CardContent className="p-4">
+      <CardContent className="p-4 relative">
         <div id="qr-scanner" ref={scannerRef} className="w-full rounded-md overflow-hidden aspect-square bg-muted"></div>
+         {scanResult && (
+          <div className="absolute inset-0 bg-green-500/50 flex items-center justify-center pointer-events-none">
+            <p className="text-white text-lg font-bold bg-black/50 px-4 py-2 rounded-lg">
+              Scanned: {scanResult}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
