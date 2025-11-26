@@ -165,7 +165,9 @@ export default function AttendanceView() {
   
       const headers = ['Class', 'Section', 'Student ID', 'Student Name', ...dateColumns];
       
-      const dataToExport = students.map(student => {
+      const studentsForReport = [...students].sort((a, b) => a.studentId.localeCompare(b.studentId));
+
+      const dataToExport = studentsForReport.map(student => {
         const rowData: (string | number)[] = [
           student.class,
           student.section,
