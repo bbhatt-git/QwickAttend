@@ -1,15 +1,15 @@
 
-"use client";
+'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, getDocs, Timestamp, setDoc, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { AlertTriangle, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
@@ -19,6 +19,7 @@ export function QrScanner() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  
   const [scanResult, setScanResult] = useState<{ text: string; type: 'success' | 'duplicate' | 'error' } | null>(null);
   const processingRef = useRef(false);
 
@@ -27,14 +28,21 @@ export function QrScanner() {
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Initialize audio on the client
+    // Initialize audio on the client to be ready for playback
     successAudioRef.current = new Audio('/sounds/success.mp3');
     duplicateAudioRef.current = new Audio('/sounds/duplicate.mp3');
     errorAudioRef.current = new Audio('/sounds/error.mp3');
+    
+    // Preload for faster playback
+    successAudioRef.current.preload = 'auto';
+    duplicateAudioRef.current.preload = 'auto';
+    errorAudioRef.current.preload = 'auto';
   }, []);
 
   useEffect(() => {
-    if (!scannerRef.current || html5QrCodeRef.current || !user) return;
+    if (!scannerRef.current || html5QrCodeRef.current?.getState() === Html5QrcodeScannerState.SCANNING || !user) {
+        return;
+    }
     
     const html5QrCode = new Html5Qrcode(scannerRef.current.id, {
        experimentalFeatures: {
@@ -47,10 +55,23 @@ export function QrScanner() {
         if(processingRef.current) return;
         
         processingRef.current = true;
-        markAttendance(decodedText);
+        
+        // --- Optimistic UI Update ---
+        // Play sound and show UI immediately for instant feedback
+        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        setScanResult({ text: decodedText, type: 'success' });
+        
+        // Handle database logic in the background
+        handleAttendance(decodedText);
+        
+        // Set cooldown and reset UI
+        setTimeout(() => {
+          setScanResult(null);
+          processingRef.current = false;
+        }, 3000);
     };
     
-    const config = { fps: 10, supportedScanTypes: [] };
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     const cameraConfig = { facingMode: "environment" };
 
     html5QrCode.start(
@@ -60,11 +81,19 @@ export function QrScanner() {
         undefined
     ).catch(err => {
         console.error("Failed to start QR scanner:", err);
-        toast({ 
-            variant: "destructive", 
-            title: "Camera Error", 
-            description: "Could not start camera. Please ensure you have given permission in your browser settings." 
-        });
+        html5QrCode.start(
+          { }, // Use any available camera
+          config,
+          qrCodeSuccessCallback,
+          undefined
+        ).catch(err => {
+            console.error("Failed to start any camera:", err);
+            toast({ 
+                variant: "destructive", 
+                title: "Camera Error", 
+                description: "Could not start camera. Please ensure you have given permission in your browser settings." 
+            });
+        })
     });
 
     return () => {
@@ -72,12 +101,11 @@ export function QrScanner() {
         html5QrCodeRef.current.stop().catch(err => console.error("Failed to stop QR scanner.", err));
       }
     };
-  }, [user, toast, firestore]);
+  }, [user, toast]);
 
-  const markAttendance = async (studentId: string): Promise<void> => {
+  const handleAttendance = async (studentId: string): Promise<void> => {
     if (!user) {
-        processingRef.current = false;
-        return;
+        return; // Should not happen if scanner is active
     }
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
@@ -85,6 +113,7 @@ export function QrScanner() {
         const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
         const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
         const studentSnapshot = await getDocs(studentQuery);
+
         if(studentSnapshot.empty) {
             errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
             setScanResult({ text: studentId, type: 'error' });
@@ -109,16 +138,15 @@ export function QrScanner() {
                  duplicateAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
                  setScanResult({ text: studentId, type: 'duplicate' });
                  toast({ variant: 'default', title: 'Already Present', description: `Student ${studentName} has already been marked present.` });
-            } else {
+            } else { // if status is 'on_leave'
                  await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
-                 successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-                 setScanResult({ text: studentId, type: 'success' });
+                 setScanResult({ text: studentId, type: 'success' }); // Already optimistically set
                  toast({ title: 'Status Updated', description: `${studentName} status updated to present.` });
             }
             return;
         }
         
-        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        // This is the success case for a new attendance record
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
@@ -126,7 +154,7 @@ export function QrScanner() {
             timestamp: Timestamp.now(),
             status: 'present'
         });
-        setScanResult({ text: studentId, type: 'success' });
+        // UI is already optimistically updated
         toast({ title: 'Success', description: `${studentName} marked as present.` });
 
     } catch (error) {
@@ -134,11 +162,6 @@ export function QrScanner() {
         errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         setScanResult({ text: studentId, type: 'error' });
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark attendance. Please try again.' });
-    } finally {
-        setTimeout(() => {
-          setScanResult(null);
-          processingRef.current = false;
-        }, 3000);
     }
   };
 
@@ -165,9 +188,9 @@ export function QrScanner() {
             indicatorColor[scanResult.type],
             "text-white"
           )}>
-            {scanResult.type === 'success' && <CheckCircle className="h-4 w-4" />}
+            {scanResult.type === 'success' && <Check className="h-4 w-4" />}
             {scanResult.type === 'duplicate' && <AlertTriangle className="h-4 w-4" />}
-            {scanResult.type === 'error' && <XCircle className="h-4 w-4" />}
+            {scanResult.type === 'error' && <X className="h-4 w-4" />}
             {scanResult.text}
           </div>
         )}
@@ -185,3 +208,5 @@ export function QrScanner() {
     </Card>
   );
 }
+
+    
