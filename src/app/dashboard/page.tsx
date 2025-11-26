@@ -5,17 +5,16 @@ import Link from 'next/link';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { format } from 'date-fns';
-import type { Student, AttendanceRecord } from '@/lib/types';
+import type { AttendanceRecord } from '@/lib/types';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, QrCode, CalendarClock, ArrowUpRight, AppWindow, UserCheck, UserX } from 'lucide-react';
+import { Users, QrCode, CalendarClock, ArrowUpRight, AppWindow, UserCheck, UserX, UserMinus } from 'lucide-react';
 import WelcomeHeader from '@/components/dashboard/welcome-header';
 
 const quickActions = [
@@ -28,7 +27,7 @@ const quickActions = [
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [stats, setStats] = useState({ present: 0, absent: 0, total: 0 });
+  const [stats, setStats] = useState({ present: 0, absent: 0, onLeave: 0, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -54,6 +53,7 @@ export default function DashboardPage() {
         setStats({
           present: presentStudents,
           absent: totalStudents - presentStudents - onLeaveStudents,
+          onLeave: onLeaveStudents,
           total: totalStudents
         });
 
@@ -67,6 +67,13 @@ export default function DashboardPage() {
     fetchStats();
   }, [user, firestore]);
 
+  const statCards = [
+    { title: 'Total Students', value: stats.total, icon: Users, color: 'text-blue-500' },
+    { title: 'Present Today', value: stats.present, icon: UserCheck, color: 'text-green-500' },
+    { title: 'Absent Today', value: stats.absent, icon: UserX, color: 'text-red-500' },
+    { title: 'On Leave', value: stats.onLeave, icon: UserMinus, color: 'text-yellow-500' },
+  ];
+
   return (
     <div className="space-y-8">
       <WelcomeHeader />
@@ -78,55 +85,33 @@ export default function DashboardPage() {
         </p>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {isLoading ? (
-            <>
-              <Card>
+            Array.from({ length: 4 }).map((_, index) => (
+               <Card key={index}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Present Today</CardTitle>
-                  <UserCheck className="h-4 w-4 text-muted-foreground" />
+                  <Skeleton className="h-5 w-24" />
+                   <Skeleton className="h-4 w-4" />
                 </CardHeader>
                 <CardContent>
                   <Skeleton className="h-8 w-16" />
                   <Skeleton className="h-4 w-24 mt-2" />
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Absent Today</CardTitle>
-                  <UserX className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-16" />
-                  <Skeleton className="h-4 w-24 mt-2" />
-                </CardContent>
-              </Card>
-            </>
+            ))
           ) : (
-            <>
-               <Card>
+            statCards.map(card => (
+              <Card key={card.title}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Present Today</CardTitle>
-                  <UserCheck className="h-4 w-4 text-green-500" />
+                  <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                  <card.icon className={`h-4 w-4 ${card.color}`} />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-4xl font-bold">{stats.present}</div>
-                  <p className="text-xs text-muted-foreground">
-                    out of {stats.total} students
+                  <div className="text-4xl font-bold">{card.value}</div>
+                   <p className="text-xs text-muted-foreground">
+                    {card.title !== 'Total Students' ? `out of ${stats.total} students` : 'in your roster'}
                   </p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Absent Today</CardTitle>
-                  <UserX className="h-4 w-4 text-red-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-bold">{stats.absent}</div>
-                  <p className="text-xs text-muted-foreground">
-                     out of {stats.total} students
-                  </p>
-                </CardContent>
-              </Card>
-            </>
+            ))
           )}
         </div>
       </div>
@@ -144,7 +129,7 @@ export default function DashboardPage() {
                 <action.icon className="w-5 h-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <CardDescription>{action.description}</CardDescription>
+                <p className="text-sm text-muted-foreground">{action.description}</p>
                 <Button asChild variant="link" className="px-0 -mb-2 -ml-2">
                   <Link href={action.href} className="mt-2">
                     Go to {action.title} <ArrowUpRight className="h-4 w-4 ml-1" />
