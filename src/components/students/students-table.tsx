@@ -89,9 +89,6 @@ export function StudentsTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="hidden w-[100px] sm:table-cell">
-                QR Code
-              </TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Student ID</TableHead>
               <TableHead>Class & Section</TableHead>
@@ -104,9 +101,6 @@ export function StudentsTable() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell className="hidden sm:table-cell">
-                    <Skeleton className="h-16 w-16 rounded-md" />
-                  </TableCell>
                   <TableCell><Skeleton className="h-6 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-40" /></TableCell>
@@ -116,19 +110,6 @@ export function StudentsTable() {
             ) : filteredStudents.length > 0 ? (
               filteredStudents.map((student) => (
                 <TableRow key={student.id}>
-                  <TableCell className="hidden sm:table-cell">
-                    {student.qrCodeUrl ? (
-                      <Image
-                        alt="QR Code"
-                        className="aspect-square rounded-md object-cover"
-                        height="64"
-                        src={student.qrCodeUrl}
-                        width="64"
-                      />
-                    ) : (
-                      <Skeleton className="h-16 w-16 rounded-md" />
-                    )}
-                  </TableCell>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.studentId}</TableCell>
                   <TableCell>{student.class} - {student.section}</TableCell>
@@ -139,7 +120,7 @@ export function StudentsTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={4} className="h-24 text-center">
                   No students found. Add your first student to get started.
                 </TableCell>
               </TableRow>
