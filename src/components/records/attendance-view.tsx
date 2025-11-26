@@ -10,6 +10,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { SECTIONS } from '@/lib/constants';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -18,6 +19,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+  } from '@/components/ui/select';
 import {
   Card,
   CardContent,
@@ -35,18 +43,19 @@ export default function AttendanceView() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [students, setStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const [sectionFilter, setSectionFilter] = useState('all');
 
   useEffect(() => {
     if (!user) return;
     const fetchStudents = async () => {
       const q = query(collection(firestore, `teachers/${user.uid}/students`), orderBy('name'));
       const querySnapshot = await getDocs(q);
-      setStudents(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student)));
+      setAllStudents(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student)));
     };
     fetchStudents();
   }, [user, firestore]);
@@ -66,6 +75,14 @@ export default function AttendanceView() {
     };
     fetchAttendance();
   }, [user, date, firestore, refetchTrigger]);
+  
+  const students = useMemo(() => {
+    if (sectionFilter === 'all') {
+      return allStudents;
+    }
+    return allStudents.filter(student => student.section === sectionFilter);
+  }, [allStudents, sectionFilter]);
+
 
   const { presentStudents, absentStudents, onLeaveStudents } = useMemo(() => {
     const present = attendance.filter(a => a.status === 'present');
@@ -213,7 +230,7 @@ export default function AttendanceView() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -237,6 +254,17 @@ export default function AttendanceView() {
               />
             </PopoverContent>
           </Popover>
+          <Select value={sectionFilter} onValueChange={setSectionFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by section" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sections</SelectItem>
+                {SECTIONS.map(section => (
+                    <SelectItem key={section} value={section}>{section}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           {date && (
             <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
               <span className="font-semibold">BS: </span>{bsDate}
@@ -313,3 +341,5 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+    
