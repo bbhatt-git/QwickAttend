@@ -31,7 +31,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AddStudentDialog } from '@/components/students/add-student-dialog';
 import { StudentActions } from '@/components/students/student-actions';
 
 export function StudentsTable() {
@@ -144,7 +143,6 @@ export function StudentsTable() {
                 <SelectItem value="studentId">Sort by Student ID</SelectItem>
               </SelectContent>
             </Select>
-            <AddStudentDialog onStudentAdded={handleActionComplete} />
           </div>
         </div>
       </CardHeader>

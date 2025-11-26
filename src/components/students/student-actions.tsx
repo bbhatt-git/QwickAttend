@@ -28,17 +28,15 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, QrCode, Edit, Trash2, Loader2 } from 'lucide-react';
+import { MoreHorizontal, QrCode, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useFirebaseApp } from '@/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import type { Student } from '@/lib/types';
-import { Skeleton } from '../ui/skeleton';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { EditStudentDialog } from './edit-student-dialog';
 
 export function StudentActions({ student, onActionComplete }: { student: Student; onActionComplete: () => void; }) {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -96,11 +94,6 @@ export function StudentActions({ student, onActionComplete }: { student: Student
           <DropdownMenuItem onSelect={() => setIsQrDialogOpen(true)}>
             <QrCode className="mr-2 h-4 w-4" /> View QR Code
           </DropdownMenuItem>
-          <EditStudentDialog student={student} onStudentUpdated={onActionComplete}>
-             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                <Edit className="mr-2 h-4 w-4" /> Edit
-             </DropdownMenuItem>
-          </EditStudentDialog>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setIsDeleteAlertOpen(true)} className="text-destructive">
             <Trash2 className="mr-2 h-4 w-4" /> Delete
