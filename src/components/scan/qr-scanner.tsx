@@ -18,6 +18,12 @@ export function QrScanner() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Pre-load the audio
+    audioRef.current = new Audio('/sounds/beep.mp3');
+  }, []);
 
   useEffect(() => {
     if (!scannerRef.current || html5QrCodeRef.current || !user) return;
@@ -32,10 +38,12 @@ export function QrScanner() {
         setScanResult(decodedText);
         
         try {
-            // The decoded text is now just the student ID
             const studentId = decodedText;
             if (studentId) {
-                await markAttendance(studentId);
+                const alreadyPresent = await markAttendance(studentId);
+                if (!alreadyPresent) {
+                  audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+                }
             } else {
                 toast({ variant: 'destructive', title: 'Invalid QR Code', description: 'The QR code appears to be empty.' });
             }
@@ -79,8 +87,8 @@ export function QrScanner() {
     };
   }, [user, toast, firestore]);
 
-  const markAttendance = async (studentId: string) => {
-    if (!user) return;
+  const markAttendance = async (studentId: string): Promise<boolean> => {
+    if (!user) return true;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
     try {
@@ -94,7 +102,7 @@ export function QrScanner() {
 
         if (!querySnapshot.empty) {
             toast({ variant: 'default', title: 'Already Present', description: 'This student has already been marked present today.' });
-            return;
+            return true;
         }
         
         const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
@@ -102,7 +110,7 @@ export function QrScanner() {
         const studentSnapshot = await getDocs(studentQuery);
         if(studentSnapshot.empty) {
             toast({ variant: 'destructive', title: 'Student not found', description: 'This student is not in your roster.' });
-            return;
+            return true;
         }
         const studentName = studentSnapshot.docs[0].data().name;
 
@@ -114,9 +122,11 @@ export function QrScanner() {
             timestamp: Timestamp.now(),
         });
         toast({ title: 'Success', description: `${studentName} marked as present.` });
+        return false;
     } catch (error) {
         console.error("Error marking attendance:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark attendance. Please try again.' });
+        return true;
     }
   };
 
