@@ -82,7 +82,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-[--glass-bg] backdrop-blur-xl rounded-2xl border border-[--glass-border] shadow-lg;
+    @apply bg-card/60 dark:bg-card/75 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg rounded-2xl;
   }
 
   .glass-sheet {
