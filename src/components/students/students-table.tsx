@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import type { Student } from '@/lib/types';
+import { SECTIONS } from '@/lib/constants';
 
 import {
   Table,
@@ -38,16 +39,20 @@ export function StudentsTable() {
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
+  const [sectionFilter, setSectionFilter] = useState('all');
   
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   const studentsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(
-      collection(firestore, `teachers/${user.uid}/students`),
-      orderBy(sortBy, 'asc')
-    );
+    
+    let q = collection(firestore, `teachers/${user.uid}/students`);
+
+    const finalQuery = query(q, orderBy(sortBy, 'asc'));
+
+    return finalQuery;
   }, [firestore, user, refetchTrigger, sortBy]);
+
 
   const { data: studentsFromHook, isLoading } = useCollection<Student>(studentsQuery);
 
@@ -61,12 +66,22 @@ export function StudentsTable() {
 
   const filteredStudents = useMemo(() => {
     if (!students) return [];
-    if (!searchTerm) return students;
-    return students.filter(student =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [students, searchTerm]);
+    
+    let filtered = students;
+
+    if (sectionFilter !== 'all') {
+      filtered = filtered.filter(student => student.section === sectionFilter);
+    }
+    
+    if (searchTerm) {
+      filtered = filtered.filter(student =>
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [students, searchTerm, sectionFilter]);
 
   const handleActionComplete = () => {
     setRefetchTrigger(count => count + 1);
@@ -79,14 +94,25 @@ export function StudentsTable() {
         <CardDescription>
           A list of all students in your classes.
         </CardDescription>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pt-4 flex-wrap">
           <Input
             placeholder="Filter by name or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:max-w-sm"
+            className="w-full sm:max-w-xs"
           />
           <div className="flex w-full sm:w-auto gap-2">
+             <Select value={sectionFilter} onValueChange={setSectionFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by section" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sections</SelectItem>
+                {SECTIONS.map(section => (
+                    <SelectItem key={section} value={section}>{section}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Sort by" />
@@ -94,6 +120,7 @@ export function StudentsTable() {
               <SelectContent>
                 <SelectItem value="name">Sort by Name</SelectItem>
                 <SelectItem value="studentId">Sort by Student ID</SelectItem>
+                <SelectItem value="class">Sort by Class</SelectItem>
               </SelectContent>
             </Select>
             <AddStudentDialog onStudentAdded={handleActionComplete} />
@@ -139,7 +166,7 @@ export function StudentsTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  No students found. Add your first student to get started.
+                  No students found for the selected criteria.
                 </TableCell>
               </TableRow>
             )}
