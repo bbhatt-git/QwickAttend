@@ -15,6 +15,7 @@ import {
   QrCode,
   CalendarClock,
   School,
+  AppWindow,
 } from 'lucide-react';
 
 const navItems = [
@@ -23,7 +24,7 @@ const navItems = [
   { href: '/dashboard/import', icon: FileUp, label: 'Import' },
   { href: '/dashboard/scan', icon: QrCode, label: 'Scan QR' },
   { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
-  { href: '/dashboard/generate-qr', icon: QrCode, label: 'Generate QR' },
+  { href: '/dashboard/generate-qr', icon: AppWindow, label: 'Generate QR' },
 ];
 
 export default function MainSidebar() {
