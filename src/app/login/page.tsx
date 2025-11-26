@@ -17,7 +17,11 @@ export default function LoginPage() {
         </p>
       </CardHeader>
       <CardContent>
-        <LoginForm />
+        <Card className="border-none bg-transparent shadow-none">
+          <CardContent className="p-0">
+            <LoginForm />
+          </CardContent>
+        </Card>
       </CardContent>
     </Card>
   );
