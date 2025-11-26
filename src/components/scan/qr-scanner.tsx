@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Student } from '@/lib/types';
 
 type ScanResultType = 'success' | 'duplicate' | 'error';
 
@@ -39,6 +40,14 @@ export function QrScanner() {
   }, []);
 
   const playSound = (type: ScanResultType) => {
+    // Stop any currently playing sound to prevent overlaps
+    successAudioRef.current?.pause();
+    successAudioRef.current!.currentTime = 0;
+    duplicateAudioRef.current?.pause();
+    duplicateAudioRef.current!.currentTime = 0;
+    errorAudioRef.current?.pause();
+    errorAudioRef.current!.currentTime = 0;
+
     switch (type) {
       case 'success':
         successAudioRef.current?.play().catch(e => console.error("Success audio play failed:", e));
@@ -71,40 +80,46 @@ export function QrScanner() {
     }
 
     try {
-      const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
-      const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
-      const studentSnapshot = await getDocs(studentQuery);
-
-      if (studentSnapshot.empty) {
-        showFeedback(studentId, 'error');
-        toast({ variant: 'destructive', title: 'Student not found', description: `Student ID "${studentId}" is not in your roster.` });
-        return;
-      }
-      
-      const studentName = studentSnapshot.docs[0].data().name;
       const todayStr = format(new Date(), 'yyyy-MM-dd');
+      
+      // First, check if attendance for this student already exists today
       const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
       const attendanceQuery = query(
         attendanceCollection,
         where('studentId', '==', studentId),
         where('date', '==', todayStr)
       );
-      const querySnapshot = await getDocs(attendanceQuery);
-
-      if (!querySnapshot.empty) {
+      const attendanceSnapshot = await getDocs(attendanceQuery);
+      
+      if (!attendanceSnapshot.empty) {
         showFeedback(studentId, 'duplicate');
-        toast({ variant: 'default', title: 'Already Present', description: `${studentName} has already been marked present today.` });
-      } else {
-        await addDoc(attendanceCollection, {
-          studentId,
-          teacherId: user.uid,
-          date: todayStr,
-          timestamp: Timestamp.now(),
-          status: 'present'
-        });
-        showFeedback(studentId, 'success');
-        toast({ title: 'Success', description: `${studentName} marked as present.` });
+        toast({ variant: 'default', title: 'Already Present', description: `Student ID "${studentId}" has already been marked present today.` });
+        return;
       }
+
+      // If not present, check if student exists
+      const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
+      const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
+      const studentSnapshot = await getDocs(studentQuery);
+      
+      if (studentSnapshot.empty) {
+        showFeedback(studentId, 'error');
+        toast({ variant: 'destructive', title: 'Student not found', description: `Student ID "${studentId}" is not in your roster.` });
+        return;
+      }
+
+      // If student exists and is not present, add attendance record
+      const studentName = studentSnapshot.docs[0].data().name as string;
+      await addDoc(attendanceCollection, {
+        studentId,
+        teacherId: user.uid,
+        date: todayStr,
+        timestamp: Timestamp.now(),
+        status: 'present'
+      });
+      showFeedback(studentId, 'success');
+      toast({ title: 'Success', description: `${studentName} marked as present.` });
+      
     } catch (error) {
       console.error("Error marking attendance:", error);
       showFeedback(studentId, 'error');
@@ -180,7 +195,7 @@ export function QrScanner() {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-lg rounded-xl overflow-hidden border-4 border-primary/20 bg-muted">
+    <Card className="w-full max-w-md shadow-lg rounded-xl overflow-hidden bg-muted">
       <CardContent className="p-0 relative">
         <div id="qr-scanner" ref={scannerRef} className="w-full rounded-lg overflow-hidden aspect-square bg-slate-900"></div>
         
