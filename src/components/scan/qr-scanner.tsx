@@ -19,14 +19,13 @@ export function QrScanner() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [scanResult, setScanResult] = useState<string | null>(null);
-  const processingRef = useRef(false); // To prevent concurrent processing
+  const processingRef = useRef(false);
 
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
   const duplicateAudioRef = useRef<HTMLAudioElement | null>(null);
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Pre-load the audio files from the public directory.
     successAudioRef.current = new Audio('/sounds/success.mp3');
     duplicateAudioRef.current = new Audio('/sounds/duplicate.mp3');
     errorAudioRef.current = new Audio('/sounds/error.mp3');
@@ -35,8 +34,8 @@ export function QrScanner() {
   useEffect(() => {
     if (!scannerRef.current || html5QrCodeRef.current || !user) return;
     
-    html5QrCodeRef.current = new Html5Qrcode(scannerRef.current.id);
-    const html5QrCode = html5QrCodeRef.current;
+    const html5QrCode = new Html5Qrcode(scannerRef.current.id);
+    html5QrCodeRef.current = html5QrCode;
     
     const qrCodeSuccessCallback = async (decodedText: string, decodedResult: any) => {
         if(processingRef.current) return;
@@ -56,39 +55,28 @@ export function QrScanner() {
             errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
             toast({ variant: 'destructive', title: 'Scan Error', description: 'Could not process the QR code.' });
         } finally {
-            // Visual feedback is reset quickly, ready for the next scan
             setTimeout(() => {
               setScanResult(null);
               processingRef.current = false;
-            }, 500); // Keep visual feedback for half a second
+            }, 500);
         }
     };
     
-    const config = { fps: 10, qrbox: { width: QR_BOX_SIZE, height: QR_BOX_SIZE } };
+    const config = { fps: 10, qrbox: { width: QR_BOX_SIZE, height: QR_BOX_SIZE }, supportedScanTypes: [] };
+    const cameraConfig = { facingMode: "environment" };
 
-    Html5Qrcode.getCameras().then(cameras => {
-        if (cameras && cameras.length) {
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                qrCodeSuccessCallback,
-                undefined
-            ).catch(err => {
-                console.error("Failed to start QR scanner with back camera, trying default.", err);
-                html5QrCode.start(
-                    cameras[0].id,
-                    config,
-                    qrCodeSuccessCallback,
-                    undefined
-                ).catch(err_front => {
-                  toast({ variant: "destructive", title: "Camera Error", description: "Could not start the camera. Please check permissions."})
-                  console.error("Failed to start QR scanner with any camera.", err_front)
-                });
-            });
-        }
-    }).catch(err => {
-      toast({ variant: "destructive", title: "Camera Error", description: "Could not find any cameras on this device."})
-      console.error("Failed to get cameras.", err)
+    html5QrCode.start(
+        cameraConfig,
+        config,
+        qrCodeSuccessCallback,
+        undefined
+    ).catch(err => {
+        console.error("Failed to start QR scanner:", err);
+        toast({ 
+            variant: "destructive", 
+            title: "Camera Error", 
+            description: "Could not start camera. Please ensure you have given permission in your browser settings." 
+        });
     });
 
     return () => {
@@ -103,7 +91,6 @@ export function QrScanner() {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
     try {
-        // First, check if student exists
         const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
         const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
         const studentSnapshot = await getDocs(studentQuery);
@@ -114,7 +101,6 @@ export function QrScanner() {
         }
         const studentName = studentSnapshot.docs[0].data().name;
 
-        // Then, check attendance
         const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
         const attendanceQuery = query(
             attendanceCollection,
@@ -130,7 +116,7 @@ export function QrScanner() {
             if (status === 'present') {
                  duplicateAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
                  toast({ variant: 'default', title: 'Already Present', description: `Student ${studentName} has already been marked present.` });
-            } else { // 'on_leave'
+            } else {
                  await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
                  successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
                  toast({ title: 'Status Updated', description: `${studentName} status updated to present.` });
@@ -138,7 +124,6 @@ export function QrScanner() {
             return;
         }
 
-        // If no attendance record exists, create a new one
         successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
