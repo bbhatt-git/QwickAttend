@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, QrCode, CalendarClock, FileUp, ArrowUpRight } from 'lucide-react';
-import DashboardStats from '@/components/dashboard/dashboard-stats';
 
 const quickActions = [
   { href: '/dashboard/students', title: 'Manage Students', description: 'Add, edit, or view student details.', icon: Users },
@@ -25,10 +24,6 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">
           An overview of your class attendance.
         </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <DashboardStats />
       </div>
 
       <div>
