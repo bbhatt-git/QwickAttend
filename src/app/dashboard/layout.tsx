@@ -1,7 +1,7 @@
 
 import Header from '@/components/dashboard/header';
 import MainSidebar from '@/components/dashboard/main-sidebar';
-import { Loader2, Facebook, Github, Instagram, Heart } from 'lucide-react';
+import { Loader2, Facebook, Github, Instagram, Heart, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -17,6 +17,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Suspense>
         </main>
         <footer className="mt-auto flex flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5 font-medium">
+                <Lightbulb className="h-4 w-4" />
+                An idea by Bhupesh Raj Bhatt & Sanjay Thapa
+            </div>
             <div className="flex items-center gap-1.5">
               Made with <Heart className="h-4 w-4 text-red-500 fill-current" /> by Bhupesh Raj Bhatt
             </div>
