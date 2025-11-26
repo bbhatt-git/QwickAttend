@@ -22,6 +22,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddStudentDialog } from '@/components/students/add-student-dialog';
 import { StudentActions } from '@/components/students/student-actions';
@@ -30,6 +37,7 @@ export function StudentsTable() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name');
   
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
@@ -37,9 +45,9 @@ export function StudentsTable() {
     if (!user) return null;
     return query(
       collection(firestore, `teachers/${user.uid}/students`),
-      orderBy('name', 'asc')
+      orderBy(sortBy, 'asc')
     );
-  }, [firestore, user, refetchTrigger]);
+  }, [firestore, user, refetchTrigger, sortBy]);
 
   const { data: studentsFromHook, isLoading } = useCollection<Student>(studentsQuery);
 
@@ -71,14 +79,25 @@ export function StudentsTable() {
         <CardDescription>
           A list of all students in your classes.
         </CardDescription>
-        <div className="flex items-center gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4">
           <Input
             placeholder="Filter by name or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
+            className="w-full sm:max-w-sm"
           />
-          <AddStudentDialog onStudentAdded={handleActionComplete} />
+          <div className="flex w-full sm:w-auto gap-2">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Sort by Name</SelectItem>
+                <SelectItem value="studentId">Sort by Student ID</SelectItem>
+              </SelectContent>
+            </Select>
+            <AddStudentDialog onStudentAdded={handleActionComplete} />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
