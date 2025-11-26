@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Student } from '@/lib/types';
@@ -39,6 +39,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 const studentFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -69,6 +72,11 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
 
   const onSubmit = async (values: z.infer<typeof studentFormSchema>) => {
     setIsSubmitting(true);
+    if (!student.teacherId || !student.id) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Student data is incomplete. Cannot update.' });
+        setIsSubmitting(false);
+        return;
+    }
     const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
     try {
       await updateDoc(studentDocRef, values);
@@ -149,7 +157,7 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Section</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                  <Select onValuechange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a section" />
