@@ -40,7 +40,7 @@ const analyzeAbsenteeismPrompt = ai.definePrompt({
 
   Analyze the following attendance records and identify potential reasons for student absenteeism. Consider factors such as patterns in absence dates, the number of absences, and any other relevant information.
 
-  Attendance Records: {{{JSON.stringify(attendanceRecords)}}
+  Attendance Records: {{{attendanceRecords}}}
   Teacher ID: {{{teacher_id}}}
 
   Provide a detailed analysis of potential reasons for student absenteeism.`,
