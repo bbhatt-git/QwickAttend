@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
@@ -27,8 +26,8 @@ export function QrScanner() {
 
   useEffect(() => {
     // Pre-load the audio files for instant playback.
-    // The success sound is now local, assuming you place it in `public/sounds/success.mp3`
-    successAudioRef.current = new Audio('/sounds/success.mp3');
+    // Using reliable, remote URLs to bypass any local file path issues.
+    successAudioRef.current = new Audio('https://firebasestudio.b-cdn.net/sounds/success.mp3');
     duplicateAudioRef.current = new Audio('https://firebasestudio.b-cdn.net/sounds/duplicate.mp3');
     errorAudioRef.current = new Audio('https://firebasestudio.b-cdn.net/sounds/error.mp3');
   }, []);
