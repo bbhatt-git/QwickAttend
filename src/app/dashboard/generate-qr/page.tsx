@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,7 +6,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { QrCode } from 'lucide-react';
+import { QrCode, Download } from 'lucide-react';
 
 export default function GenerateQrPage() {
   const [studentId, setStudentId] = useState('');
@@ -16,6 +17,25 @@ export default function GenerateQrPage() {
       setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(studentId.trim())}&size=256x256`);
     } else {
       setQrCodeUrl('');
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!qrCodeUrl) return;
+    try {
+      const response = await fetch(qrCodeUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `student-qr-code.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to download QR code', error);
     }
   };
 
@@ -32,7 +52,7 @@ export default function GenerateQrPage() {
         <CardHeader>
           <CardTitle>QR Code Generator</CardTitle>
           <CardDescription>
-            Enter a Student ID below to generate a unique QR code. You can then save the image and upload it to a service like Google Drive to link it to a student.
+            Enter a Student ID below to generate a unique QR code. You can then download the PNG file.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -58,9 +78,10 @@ export default function GenerateQrPage() {
                 height={256}
                 className="rounded-lg border-4 border-white shadow-lg"
               />
-              <p className="text-sm text-muted-foreground">
-                Right-click or long-press the image to save it.
-              </p>
+              <Button onClick={handleDownload} variant="secondary">
+                <Download className="mr-2 h-4 w-4" />
+                Download PNG
+              </Button>
             </div>
           )}
         </CardContent>
