@@ -56,12 +56,6 @@ export function QrScanner() {
         
         processingRef.current = true;
         
-        // --- Optimistic UI Update ---
-        // Play sound and show UI immediately for instant feedback
-        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-        setScanResult({ text: decodedText, type: 'success' });
-        
-        // Handle database logic in the background
         handleAttendance(decodedText);
         
         // Set cooldown and reset UI
@@ -113,7 +107,7 @@ export function QrScanner() {
 
   const handleAttendance = async (studentId: string): Promise<void> => {
     if (!user) {
-        return; // Should not happen if scanner is active
+        return;
     }
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
@@ -148,13 +142,13 @@ export function QrScanner() {
                  toast({ variant: 'default', title: 'Already Present', description: `Student ${studentName} has already been marked present.` });
             } else { // if status is 'on_leave'
                  await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
-                 setScanResult({ text: studentId, type: 'success' }); // Already optimistically set
+                 successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+                 setScanResult({ text: studentId, type: 'success' });
                  toast({ title: 'Status Updated', description: `${studentName} status updated to present.` });
             }
             return;
         }
         
-        // This is the success case for a new attendance record
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
@@ -162,7 +156,8 @@ export function QrScanner() {
             timestamp: Timestamp.now(),
             status: 'present'
         });
-        // UI is already optimistically updated
+        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        setScanResult({ text: studentId, type: 'success' });
         toast({ title: 'Success', description: `${studentName} marked as present.` });
 
     } catch (error) {
