@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { format, isValid } from 'date-fns';
 import { Calendar as CalendarIcon, Download, BrainCircuit, Loader2 } from 'lucide-react';
 import Papa from 'papaparse';
+import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import type { Student, AttendanceRecord } from '@/lib/types';
@@ -86,6 +87,8 @@ export default function AttendanceView() {
   }, [students, attendance]);
   
   const handleExport = () => {
+    if (!date) return;
+    const bsDate = new NepaliDate(date).format('YYYY-MM-DD');
     const dataToExport = students.map(student => {
       const isPresent = presentStudents.some(ps => ps.id === student.id);
       return {
@@ -95,6 +98,8 @@ export default function AttendanceView() {
         'Section': student.section,
         'Status': isPresent ? 'Present' : 'Absent',
         'Attendance Time': isPresent ? format(presentStudents.find(ps => ps.id === student.id)!.attendanceTime!, 'HH:mm:ss') : 'N/A',
+        'Date (AD)': format(date, 'yyyy-MM-dd'),
+        'Date (BS)': bsDate,
       };
     });
     const csv = Papa.unparse(dataToExport);
@@ -102,7 +107,7 @@ export default function AttendanceView() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `attendance_${format(date!, 'yyyy-MM-dd')}.csv`);
+    link.setAttribute('download', `attendance_${format(date, 'yyyy-MM-dd')}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -143,35 +148,45 @@ export default function AttendanceView() {
     }
   }
 
+  const bsDate = date ? new NepaliDate(date).format('dd, mmmm yyyy') : '';
+
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[280px] justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : <span>Pick a date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              initialFocus
-              disabled={(d) => d > new Date() || d < new Date("2000-01-01")}
-            />
-          </PopoverContent>
-        </Popover>
+        <div className="flex items-center gap-4">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[240px] justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                initialFocus
+                disabled={(d) => d > new Date() || d < new Date("2000-01-01")}
+              />
+            </PopoverContent>
+          </Popover>
+          {date && (
+            <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
+              <span className="font-semibold">BS: </span>{bsDate}
+            </div>
+          )}
+        </div>
         <div className="flex gap-2">
-            <Button onClick={handleExport} variant="outline"><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
-            <Button onClick={handleAnalyze}><BrainCircuit className="mr-2 h-4 w-4" /> Analyze Absenteeism</Button>
+            <Button onClick={handleExport} variant="outline" disabled={!date}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
+            <Button onClick={handleAnalyze}><BrainCircuit className="mr-2 h-4 w-4" /> Analyze</Button>
         </div>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
