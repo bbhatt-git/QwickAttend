@@ -170,7 +170,7 @@ export function QrScanner() {
   return (
     <Card className="w-full max-w-md shadow-lg rounded-xl overflow-hidden border-4 border-primary/20 bg-muted">
       <CardContent className="p-0 relative">
-        <div id="qr-scanner" ref={scannerRef} className="w-full rounded-lg overflow-hidden aspect-square bg-slate-900 [&>div>button]:hidden [&>div>span>button]:hidden"></div>
+        <div id="qr-scanner" ref={scannerRef} className="w-full rounded-lg overflow-hidden aspect-square bg-slate-900"></div>
         
         {lastResult && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/50">
