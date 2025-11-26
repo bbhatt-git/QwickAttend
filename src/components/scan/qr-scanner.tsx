@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
@@ -31,18 +32,15 @@ export function QrScanner() {
         setScanResult(decodedText);
         
         try {
-            const data = JSON.parse(decodedText);
-            if (data.student_id && data.teacher_id) {
-                if (data.teacher_id !== user?.uid) {
-                    toast({ variant: 'destructive', title: 'Invalid QR Code', description: 'This student does not belong to your class.' });
-                    return;
-                }
-                await markAttendance(data.student_id);
+            // The decoded text is now just the student ID
+            const studentId = decodedText;
+            if (studentId) {
+                await markAttendance(studentId);
             } else {
-                toast({ variant: 'destructive', title: 'Invalid QR Code', description: 'The QR code format is incorrect.' });
+                toast({ variant: 'destructive', title: 'Invalid QR Code', description: 'The QR code appears to be empty.' });
             }
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Invalid QR Code', description: 'This does not appear to be a valid QwickAttend code.' });
+            toast({ variant: 'destructive', title: 'Scan Error', description: 'Could not process the QR code.' });
         } finally {
             setTimeout(() => {
                 setScanResult(null);

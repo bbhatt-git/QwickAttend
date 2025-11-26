@@ -36,8 +36,7 @@ export async function POST(req: NextRequest) {
     const studentId = uuidv4().slice(0, 8).toUpperCase();
     const studentDocRef = db.collection(`teachers/${teacherId}/students`).doc();
     
-    const qrData = JSON.stringify({ student_id: studentId, teacher_id: teacherId });
-    const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+    const qrCodeDataUrl = await QRCode.toDataURL(studentId);
 
     const bucket = storage.bucket();
     const filePath = `qrcodes/${teacherId}/${studentId}.png`;

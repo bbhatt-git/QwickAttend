@@ -84,8 +84,7 @@ export default function CsvUploader() {
             const docId = studentDocRef.id;
             const studentId = uuidv4().slice(0, 8).toUpperCase();
             
-            const qrData = JSON.stringify({ student_id: studentId, teacher_id: user.uid });
-            const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+            const qrCodeDataUrl = await QRCode.toDataURL(studentId);
 
             const storageRef = ref(storage, `qrcodes/${user.uid}/${studentId}.png`);
             await uploadString(storageRef, qrCodeDataUrl, 'data_url');
