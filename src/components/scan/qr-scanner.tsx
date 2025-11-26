@@ -9,6 +9,7 @@ import { collection, query, where, getDocs, Timestamp, setDoc, doc } from 'fireb
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { CheckCircle } from 'lucide-react';
 
 const QR_BOX_SIZE = 300;
 
@@ -19,6 +20,7 @@ export function QrScanner() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const [showSuccessIndicator, setShowSuccessIndicator] = useState(false);
   const processingRef = useRef(false);
 
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -26,6 +28,7 @@ export function QrScanner() {
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // Initialize audio on the client
     successAudioRef.current = new Audio('/sounds/success.mp3');
     duplicateAudioRef.current = new Audio('/sounds/duplicate.mp3');
     errorAudioRef.current = new Audio('/sounds/error.mp3');
@@ -34,32 +37,32 @@ export function QrScanner() {
   useEffect(() => {
     if (!scannerRef.current || html5QrCodeRef.current || !user) return;
     
-    const html5QrCode = new Html5Qrcode(scannerRef.current.id);
+    const html5QrCode = new Html5Qrcode(scannerRef.current.id, {
+       experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true
+      }
+    });
     html5QrCodeRef.current = html5QrCode;
     
-    const qrCodeSuccessCallback = async (decodedText: string, decodedResult: any) => {
+    const qrCodeSuccessCallback = (decodedText: string, decodedResult: any) => {
         if(processingRef.current) return;
         
         processingRef.current = true;
+
+        // --- Instant Feedback ---
+        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         setScanResult(decodedText);
+        setShowSuccessIndicator(true);
+        // --- End Instant Feedback ---
+
+        // Asynchronous processing
+        markAttendance(decodedText);
         
-        try {
-            const studentId = decodedText;
-            if (studentId) {
-                await markAttendance(studentId);
-            } else {
-                errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-                toast({ variant: 'destructive', title: 'Invalid QR Code', description: 'The QR code appears to be empty.' });
-            }
-        } catch (error) {
-            errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-            toast({ variant: 'destructive', title: 'Scan Error', description: 'Could not process the QR code.' });
-        } finally {
-            setTimeout(() => {
-              setScanResult(null);
-              processingRef.current = false;
-            }, 3000);
-        }
+        setTimeout(() => {
+          setScanResult(null);
+          setShowSuccessIndicator(false);
+          processingRef.current = false;
+        }, 3000);
     };
     
     const config = { fps: 10, qrbox: { width: QR_BOX_SIZE, height: QR_BOX_SIZE }, supportedScanTypes: [] };
@@ -80,9 +83,9 @@ export function QrScanner() {
     });
 
     return () => {
-        if (html5QrCodeRef.current?.getState() === Html5QrcodeScannerState.SCANNING) {
-            html5QrCodeRef.current.stop().catch(err => console.error("Failed to stop QR scanner.", err));
-        }
+      if (html5QrCodeRef.current?.isScanning) {
+        html5QrCodeRef.current.stop().catch(err => console.error("Failed to stop QR scanner.", err));
+      }
     };
   }, [user, toast, firestore]);
 
@@ -118,13 +121,13 @@ export function QrScanner() {
                  toast({ variant: 'default', title: 'Already Present', description: `Student ${studentName} has already been marked present.` });
             } else {
                  await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
-                 successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+                 // Success sound already played, so we just show toast
                  toast({ title: 'Status Updated', description: `${studentName} status updated to present.` });
             }
             return;
         }
-
-        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        
+        // Success sound already played
         addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
@@ -142,16 +145,29 @@ export function QrScanner() {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardContent className="p-4 relative">
-        <div id="qr-scanner" ref={scannerRef} className="w-full rounded-md overflow-hidden aspect-square bg-muted"></div>
-         {scanResult && (
-          <div className="absolute inset-0 bg-green-500/50 flex items-center justify-center pointer-events-none">
-            <p className="text-white text-lg font-bold bg-black/50 px-4 py-2 rounded-lg">
-              Scanned: {scanResult}
-            </p>
+    <Card className="w-full max-w-md bg-transparent shadow-none border-none">
+      <CardContent className="p-0 relative">
+        <div id="qr-scanner" ref={scannerRef} className="w-full rounded-xl overflow-hidden aspect-square bg-muted"></div>
+        
+        {showSuccessIndicator && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-24 h-24 bg-green-500/80 rounded-full animate-ping-slow opacity-75"></div>
           </div>
         )}
+
+        {scanResult && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-lg text-sm font-mono pointer-events-none">
+            {scanResult}
+          </div>
+        )}
+
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white/50 rounded-tl-lg"></div>
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white/50 rounded-tr-lg"></div>
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white/50 rounded-bl-lg"></div>
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white/50 rounded-br-lg"></div>
+        </div>
+
       </CardContent>
     </Card>
   );

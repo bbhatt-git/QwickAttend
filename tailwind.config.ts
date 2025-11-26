@@ -88,10 +88,21 @@ export default {
             height: '0',
           },
         },
+        'ping-slow': {
+          '0%': {
+            transform: 'scale(0.5)',
+            opacity: '0.75',
+          },
+          '75%, 100%': {
+            transform: 'scale(2)',
+            opacity: '0',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'ping-slow': 'ping-slow 1s cubic-bezier(0, 0, 0.2, 1) infinite',
       },
     },
   },
