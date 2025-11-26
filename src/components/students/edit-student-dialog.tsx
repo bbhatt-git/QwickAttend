@@ -81,19 +81,15 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
     }
     const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
     
-    // Ensure immutable fields are included in the update payload
+    // Only send the fields that can be changed.
     const updatePayload = {
-      ...values,
+      name: values.name,
+      class: values.class,
+      section: values.section,
       contact: values.contact || '',
-      // Preserve existing immutable fields
-      studentId: student.studentId,
-      qrCodeUrl: student.qrCodeUrl || '',
-      teacherId: student.teacherId,
-      id: student.id
     };
 
     try {
-      // Use updateDoc with the full payload to ensure immutable fields are checked
       await updateDoc(studentDocRef, updatePayload);
       toast({ title: 'Success', description: 'Student record has been updated.' });
       onStudentUpdated?.();
@@ -103,7 +99,7 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
       const permissionError = new FirestorePermissionError({
         path: studentDocRef.path,
         operation: 'update',
-        requestResourceData: updatePayload,
+        requestResourceData: { ...updatePayload, teacherId: student.teacherId, id: student.id, studentId: student.studentId }, // For debugging, send full context
       });
       errorEmitter.emit('permission-error', permissionError);
       toast({
