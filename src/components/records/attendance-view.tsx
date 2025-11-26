@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -148,7 +149,7 @@ export default function AttendanceView() {
     }
   }
 
-  const bsDate = date ? new NepaliDate(date).format('dd, mmmm yyyy') : '';
+  const bsDate = date ? new NepaliDate(date).format('DD, MMMM YYYY') : '';
 
 
   return (
