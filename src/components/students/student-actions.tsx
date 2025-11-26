@@ -33,11 +33,13 @@ import { MoreHorizontal, QrCode, Edit, Trash2, Loader2, Link as LinkIcon } from 
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useFirebaseApp } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import type { Student } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Input } from '../ui/input';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // NOTE: Edit functionality is not implemented in this component as it's a larger feature.
 // A similar dialog to AddStudentDialog would be created for editing.
@@ -56,8 +58,8 @@ export function StudentActions({ student }: { student: Student }) {
 
   const handleDelete = async () => {
     setIsDeleting(true);
+    const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
     try {
-      const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
       await deleteDoc(studentDocRef);
 
       if (student.qrCodeUrl && student.qrCodeUrl.includes('firebasestorage.googleapis.com')) {
@@ -73,7 +75,12 @@ export function StudentActions({ student }: { student: Student }) {
       setIsDeleteAlertOpen(false);
     } catch (error) {
       console.error("Error deleting student: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete student. Please try again.' });
+      const permissionError = new FirestorePermissionError({
+          path: studentDocRef.path,
+          operation: 'delete',
+        });
+      errorEmitter.emit('permission-error', permissionError);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete student. Check permissions.' });
     } finally {
       setIsDeleting(false);
     }
