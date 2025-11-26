@@ -7,7 +7,8 @@ import {
   SheetTrigger,
   SheetTitle,
   SheetDescription,
-  SheetHeader
+  SheetHeader,
+  SheetClose
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { UserNav } from './user-nav';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -34,17 +36,19 @@ const navItems = [
 
 export default function Header() {
   const pathname = usePathname();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-      <Sheet>
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button size="icon" variant="outline" className="sm:hidden">
             <PanelLeft className="h-5 w-5" />
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
+        <SheetContent side="left" className="sm:max-w-xs bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <SheetHeader>
             <SheetTitle>Navigation Menu</SheetTitle>
             <SheetDescription className="sr-only">Main navigation links for the dashboard.</SheetDescription>
@@ -53,6 +57,7 @@ export default function Header() {
             <Link
               href="/dashboard"
               className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+               onClick={() => setIsSheetOpen(false)}
             >
               <School className="h-5 w-5 transition-all group-hover:scale-110" />
               <span className="sr-only">QwickAttend</span>
@@ -68,6 +73,7 @@ export default function Header() {
                       ? 'text-foreground'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
+                  onClick={() => setIsSheetOpen(false)}
                 >
                   <item.icon className="h-5 w-5" />
                   {item.label}
