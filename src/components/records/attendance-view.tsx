@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { format, isValid, startOfMonth, endOfMonth, getDaysInMonth, getDate, getDay } from 'date-fns';
+import { format, isValid, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
 import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
@@ -125,49 +125,48 @@ export default function AttendanceView() {
   const handleMonthlyExport = async () => {
     if (!date || !user) return;
     setIsDownloading(true);
-
+  
     try {
       const adMonthStart = startOfMonth(date);
       const adMonthEnd = endOfMonth(date);
-      
+  
       const attendanceQuery = query(
         collection(firestore, `teachers/${user.uid}/attendance`),
         where('date', '>=', format(adMonthStart, 'yyyy-MM-dd')),
         where('date', '<=', format(adMonthEnd, 'yyyy-MM-dd'))
       );
-      
+  
       const attendanceSnapshot = await getDocs(attendanceQuery);
       const monthlyAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
-      
-      const adDaysInMonth = getDaysInMonth(date);
+  
       const bsDate = new NepaliDate(date);
       const bsMonth = bsDate.getMonth() + 1;
       const bsYear = bsDate.getYear();
       const bsDaysInMonth = new NepaliDate(bsYear, bsMonth, 0).getDate();
-
+  
       const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
-
+  
       const headers = ['Class', 'Section', 'Student ID', 'Student Name', ...dateColumns];
       
       const dataToExport = students.map(student => {
-        const row: { [key: string]: string } = {
-          'Class': student.class,
-          'Section': student.section,
-          'Student ID': student.studentId,
-          'Student Name': student.name,
-        };
-
+        const rowData: (string | number)[] = [
+          student.class,
+          student.section,
+          student.studentId,
+          student.name,
+        ];
+  
         dateColumns.forEach(bsDay => {
           const bsDateToCheck = new NepaliDate(bsYear, bsMonth -1, parseInt(bsDay));
           const adDateToCheck = bsDateToCheck.toJsDate();
-          
+  
           if (adDateToCheck.getMonth() !== adMonthStart.getMonth()) {
-            row[bsDay] = "-";
+            rowData.push("-");
             return;
           }
-
+  
           if (bsDateToCheck.getDay() === 6) { // 6 corresponds to Saturday in NepaliDate
-            row[bsDay] = 'Saturday';
+            rowData.push('Saturday');
             return;
           }
           
@@ -176,20 +175,21 @@ export default function AttendanceView() {
           const attendanceRecord = monthlyAttendance.find(
             a => a.studentId === student.studentId && a.date === adDateStr
           );
-
+  
           if (attendanceRecord) {
-            row[bsDay] = attendanceRecord.status === 'present' ? 'Present' : 'On leave';
+            rowData.push(attendanceRecord.status === 'present' ? 'Present' : 'On leave');
           } else {
-            row[bsDay] = 'Absent';
+            rowData.push('Absent');
           }
         });
-        return row;
+        return rowData;
       });
-
+  
       const csv = Papa.unparse({
           fields: headers,
-          data: dataToExport.map(Object.values)
+          data: dataToExport
       });
+  
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -199,7 +199,7 @@ export default function AttendanceView() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
+  
     } catch (error) {
       console.error('Failed to export monthly report:', error);
       toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not generate the monthly report.' });
@@ -300,6 +300,3 @@ export default function AttendanceView() {
     </div>
   );
 }
-
-    
-    
