@@ -163,29 +163,34 @@ export default function AttendanceView() {
   
       const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
   
-      const headers = ['Class', 'Section', 'Student ID', 'Student Name', ...dateColumns];
+      const headers = ['Class', 'Student ID', 'Student Name', ...dateColumns];
+      if (sectionFilter === 'all') {
+        headers.splice(1, 0, 'Section');
+      }
       
       const studentsForReport = [...students].sort((a, b) => a.studentId.localeCompare(b.studentId));
 
       const dataToExport = studentsForReport.map(student => {
-        const rowData: (string | number)[] = [
-          student.class,
-          student.section,
-          student.studentId,
-          student.name,
-        ];
+        const rowData: { [key: string]: string | number } = {
+          'Class': student.class,
+          'Student ID': student.studentId,
+          'Student Name': student.name,
+        };
+        if (sectionFilter === 'all') {
+          rowData['Section'] = student.section;
+        }
   
         dateColumns.forEach(bsDay => {
           const bsDateToCheck = new NepaliDate(bsYear, bsMonth -1, parseInt(bsDay));
           const adDateToCheck = bsDateToCheck.toJsDate();
   
           if (adDateToCheck.getMonth() !== adMonthStart.getMonth()) {
-            rowData.push("-");
+            rowData[bsDay] = "-";
             return;
           }
   
           if (bsDateToCheck.getDay() === 6) { // 6 corresponds to Saturday in NepaliDate
-            rowData.push('Saturday');
+            rowData[bsDay] = 'Saturday';
             return;
           }
           
@@ -196,24 +201,26 @@ export default function AttendanceView() {
           );
   
           if (attendanceRecord) {
-            rowData.push(attendanceRecord.status === 'present' ? 'Present' : 'On leave');
+            rowData[bsDay] = attendanceRecord.status === 'present' ? 'Present' : 'On leave';
           } else {
-            rowData.push('Absent');
+            rowData[bsDay] = 'Absent';
           }
         });
         return rowData;
       });
   
-      const csv = Papa.unparse({
-          fields: headers,
-          data: dataToExport
+      const csv = Papa.unparse(dataToExport, {
+          columns: headers,
       });
   
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
+      const downloadFileName = sectionFilter === 'all' 
+        ? `monthly_attendance_${bsYear}-${bsMonth}.csv`
+        : `monthly_attendance_${bsYear}-${bsMonth}_${sectionFilter}.csv`;
       link.setAttribute('href', url);
-      link.setAttribute('download', `monthly_attendance_${bsYear}-${bsMonth}.csv`);
+      link.setAttribute('download', downloadFileName);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
