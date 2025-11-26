@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
             </div>
             <a href="mailto:hello@bbhatt.com.np" className="hover:text-primary transition-colors">
-              hello@bbhatt.com.np
+              Email: hello@bbhatt.com.np
             </a>
             <div className="mt-2 flex items-center gap-4">
               <Link href="https://www.facebook.com/share/1BnJr4X2Ec/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
