@@ -1,11 +1,12 @@
 
 'use client';
 
+import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, getDocs, Timestamp, setDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, addDoc, setDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, AlertTriangle, X } from 'lucide-react';
@@ -54,7 +55,7 @@ export function QrScanner() {
         
         processingRef.current = true;
         
-        // Optimistic UI update
+        // Optimistic UI update for instant feedback
         successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         setLastResult({ text: decodedText, type: 'success' });
 
@@ -118,8 +119,6 @@ export function QrScanner() {
         const studentSnapshot = await getDocs(studentQuery);
 
         if(studentSnapshot.empty) {
-            setLastResult({ text: studentId, type: 'error' });
-            errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
             toast({ variant: 'destructive', title: 'Student not found', description: 'This student is not in your roster.' });
             return;
         }
@@ -138,33 +137,27 @@ export function QrScanner() {
             const status = existingDoc.data().status;
             
             if (status === 'present') {
-                 setLastResult({ text: studentId, type: 'duplicate' });
-                 duplicateAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
                  toast({ variant: 'default', title: 'Already Present', description: `Student ${studentName} has already been marked present.` });
             } else { // if status is 'on_leave'
-                 await setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
-                 setLastResult({ text: studentId, type: 'success' });
-                 successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+                 // Non-blocking update
+                 setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
                  toast({ title: 'Status Updated', description: `${studentName} status updated to present.` });
             }
             return;
         }
         
-        await addDoc(attendanceCollection, {
+        // Use non-blocking add
+        addDocumentNonBlocking(attendanceCollection, {
             studentId,
             teacherId: user.uid,
             date: todayStr,
             timestamp: Timestamp.now(),
             status: 'present'
         });
-        setLastResult({ text: studentId, type: 'success' });
-        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         toast({ title: 'Success', description: `${studentName} marked as present.` });
 
     } catch (error) {
         console.error("Error marking attendance:", error);
-        setLastResult({ text: studentId, type: 'error' });
-        errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark attendance. Please try again.' });
     }
   };
