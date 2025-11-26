@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,49 +11,51 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function DashboardStats() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [stats, setStats] = useState({ total: 0, present: 0, absent: 0 });
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [presentStudents, setPresentStudents] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
+    setLoading(true);
 
-        const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
-        const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
+    const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
+    const studentsQuery = query(studentsCollection);
 
-        // Get total students
-        const studentsQuery = query(studentsCollection);
-        const studentsSnapshot = await getCountFromServer(studentsQuery);
-        const totalStudents = studentsSnapshot.data().count;
+    const unsubscribeStudents = onSnapshot(studentsQuery, (snapshot) => {
+      setTotalStudents(snapshot.size);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching total students:", error);
+      setLoading(false);
+    });
 
-        // Get present students
-        const attendanceQuery = query(
-          attendanceCollection,
-          where('date', '==', todayStr)
-        );
-        const attendanceSnapshot = await getCountFromServer(attendanceQuery);
-        const presentStudents = attendanceSnapshot.data().count;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
+    const attendanceQuery = query(
+      attendanceCollection,
+      where('date', '==', todayStr)
+    );
 
-        const absentStudents = totalStudents - presentStudents;
-
-        setStats({
-          total: totalStudents,
-          present: presentStudents,
-          absent: absentStudents < 0 ? 0 : absentStudents,
-        });
-      } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
-      } finally {
-        setLoading(false);
-      }
+    const unsubscribeAttendance = onSnapshot(attendanceQuery, (snapshot) => {
+      setPresentStudents(snapshot.size);
+    }, (error) => {
+      console.error("Error fetching present students:", error);
+    });
+    
+    return () => {
+      unsubscribeStudents();
+      unsubscribeAttendance();
     };
-
-    fetchStats();
   }, [user, firestore]);
+
+  const absentStudents = totalStudents - presentStudents;
+  const stats = {
+    total: totalStudents,
+    present: presentStudents,
+    absent: absentStudents < 0 ? 0 : absentStudents,
+  };
 
   if (loading) {
     return (
