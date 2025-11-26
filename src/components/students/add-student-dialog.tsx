@@ -41,6 +41,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, PlusCircle } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const studentFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -73,10 +75,9 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       return;
     }
     setIsSubmitting(true);
+    const studentDocRef = doc(collection(firestore, `teachers/${user.uid}/students`));
 
     try {
-      const studentsCollectionRef = collection(firestore, `teachers/${user.uid}/students`);
-      const studentDocRef = doc(studentsCollectionRef);
       const studentId = uuidv4().slice(0, 8).toUpperCase();
       
       const qrCodeDataUrl = await QRCode.toDataURL(studentId);
@@ -104,10 +105,16 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
 
     } catch (error: any) {
       console.error("Error adding student: ", error);
+       const permissionError = new FirestorePermissionError({
+        path: studentDocRef.path,
+        operation: 'create',
+        requestResourceData: values,
+      });
+      errorEmitter.emit('permission-error', permissionError);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to add student. Please check permissions and try again.'
+        description: 'Failed to add student. Please check permissions and try again.'
       });
     } finally {
       setIsSubmitting(false);
