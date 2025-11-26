@@ -1,30 +1,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as admin from 'firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
-import { Student } from '@/lib/student';
-
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
-
-const db = admin.firestore();
-const storage = admin.storage();
+import type { Student } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   try {
+    const { auth, db, storage } = getFirebaseAdmin();
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return NextResponse.json({ message: 'Authorization header missing' }, { status: 401 });
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const decodedToken = await auth.verifyIdToken(token);
     const teacherId = decodedToken.uid;
 
     const { name, class: className, section } = await req.json();
@@ -37,7 +27,7 @@ export async function POST(req: NextRequest) {
     const studentDocRef = db.collection(`teachers/${teacherId}/students`).doc();
     
     const qrCodeDataUrl = await QRCode.toDataURL(studentId);
-
+    
     const bucket = storage.bucket();
     const filePath = `qrcodes/${teacherId}/${studentId}.png`;
     const file = bucket.file(filePath);
