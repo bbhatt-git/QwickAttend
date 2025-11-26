@@ -28,6 +28,7 @@ const navItems = [
   { href: '/dashboard/import', icon: FileUp, label: 'Import' },
   { href: '/dashboard/scan', icon: QrCode, label: 'Scan QR' },
   { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
+  { href: '/dashboard/generate-qr', icon: QrCode, label: 'Generate QR' },
 ];
 
 export default function Header() {
