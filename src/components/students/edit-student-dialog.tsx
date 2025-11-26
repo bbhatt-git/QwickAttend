@@ -87,7 +87,7 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
       contact: values.contact || '',
       // Preserve existing immutable fields
       studentId: student.studentId,
-      qrCodeUrl: student.qrCodeUrl,
+      qrCodeUrl: student.qrCodeUrl || '',
       teacherId: student.teacherId,
       id: student.id
     };
