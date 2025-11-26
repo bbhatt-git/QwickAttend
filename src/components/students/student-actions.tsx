@@ -26,16 +26,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, QrCode, Edit, Trash2, Loader2 } from 'lucide-react';
+import { MoreHorizontal, QrCode, Edit, Trash2, Loader2, Link as LinkIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useFirebaseApp, deleteDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useFirebaseApp } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import type { Student } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { Input } from '../ui/input';
 
 // NOTE: Edit functionality is not implemented in this component as it's a larger feature.
 // A similar dialog to AddStudentDialog would be created for editing.
@@ -43,7 +45,10 @@ import { Skeleton } from '../ui/skeleton';
 export function StudentActions({ student }: { student: Student }) {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  const [isLinkQrDialogOpen, setIsLinkQrDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [qrLink, setQrLink] = useState(student.qrCodeUrl || '');
+  const [isLinking, setIsLinking] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   const app = useFirebaseApp();
@@ -53,12 +58,11 @@ export function StudentActions({ student }: { student: Student }) {
     setIsDeleting(true);
     try {
       const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
-      deleteDocumentNonBlocking(studentDocRef);
+      await deleteDoc(studentDocRef);
 
-      if (student.qrCodeUrl) {
+      if (student.qrCodeUrl && student.qrCodeUrl.includes('firebasestorage.googleapis.com')) {
         const qrCodeRef = ref(storage, `qrcodes/${student.teacherId}/${student.studentId}.png`);
         await deleteObject(qrCodeRef).catch((error) => {
-          // It's okay if the file doesn't exist, so we can ignore "object-not-found" errors.
           if (error.code !== 'storage/object-not-found') {
             throw error;
           }
@@ -75,6 +79,21 @@ export function StudentActions({ student }: { student: Student }) {
     }
   };
 
+  const handleLinkQr = async () => {
+    setIsLinking(true);
+    try {
+      const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
+      await updateDoc(studentDocRef, { qrCodeUrl: qrLink });
+      toast({ title: 'Success', description: 'QR Code URL has been updated.' });
+      setIsLinkQrDialogOpen(false);
+    } catch (error) {
+      console.error("Error linking QR code: ", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to link QR code. Please try again.' });
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -86,8 +105,11 @@ export function StudentActions({ student }: { student: Student }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onSelect={() => setIsQrDialogOpen(true)}>
+          <DropdownMenuItem onSelect={() => setIsQrDialogOpen(true)} disabled={!student.qrCodeUrl}>
             <QrCode className="mr-2 h-4 w-4" /> View QR Code
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setIsLinkQrDialogOpen(true)}>
+            <LinkIcon className="mr-2 h-4 w-4" /> Link QR Code
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => alert('Edit functionality to be implemented.')}>
             <Edit className="mr-2 h-4 w-4" /> Edit
@@ -120,10 +142,46 @@ export function StudentActions({ student }: { student: Student }) {
             ) : (
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground">
                 <Skeleton className="h-64 w-64 rounded-lg" />
-                <p>QR Code not available or still generating.</p>
+                <p>QR Code not available. Please link one.</p>
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link QR Code Dialog */}
+      <Dialog open={isLinkQrDialogOpen} onOpenChange={setIsLinkQrDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Generate and Link QR Code</DialogTitle>
+            <DialogDescription>
+              Save the QR code below, upload it to a service like Google Drive, and paste the public link to associate it with {student.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-6 p-4">
+            <Image
+                src={`https://api.qrserver.com/v1/create-qr-code/?data=${student.studentId}&size=256x256`}
+                alt={`QR Code for ${student.studentId}`}
+                width={256}
+                height={256}
+                className="rounded-lg border"
+              />
+              <div className="w-full space-y-2">
+                <label htmlFor="qr-link" className="text-sm font-medium">QR Code Link</label>
+                <Input
+                  id="qr-link"
+                  placeholder="https://drive.google.com/..."
+                  value={qrLink}
+                  onChange={(e) => setQrLink(e.target.value)}
+                />
+              </div>
+          </div>
+           <DialogFooter>
+            <Button onClick={handleLinkQr} disabled={isLinking}>
+              {isLinking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Link
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
