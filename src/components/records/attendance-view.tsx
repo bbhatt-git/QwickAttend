@@ -7,7 +7,7 @@ import { Calendar as CalendarIcon, Download, BrainCircuit, Loader2, UserCheck, U
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import type { Student, AttendanceRecord } from '@/lib/types';
 import { analyzeAbsenteeism, AnalyzeAbsenteeismOutput } from '@/ai/flows/analyze-absenteeism';
 import { useToast } from '@/hooks/use-toast';
