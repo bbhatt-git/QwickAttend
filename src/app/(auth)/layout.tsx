@@ -1,9 +1,13 @@
+import Footer from '@/components/common/footer';
 import React from 'react';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      {children}
-    </main>
+    <div className="flex min-h-screen flex-col bg-background">
+      <main className="flex flex-1 flex-col items-center justify-center p-4">
+        {children}
+      </main>
+      <Footer />
+    </div>
   );
 }
