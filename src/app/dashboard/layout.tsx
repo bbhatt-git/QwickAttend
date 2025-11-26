@@ -1,7 +1,7 @@
 
 import Header from '@/components/dashboard/header';
 import MainSidebar from '@/components/dashboard/main-sidebar';
-import { Loader2, Facebook, Github, Instagram, Heart, Lightbulb } from 'lucide-react';
+import { Loader2, Facebook, Github, Instagram, Heart, Lightbulb, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -26,10 +26,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     Made with <Heart className="h-4 w-4 text-red-500 fill-current" /> by Bhupesh Raj Bhatt
                 </div>
             </div>
-            <a href="mailto:hello@bbhatt.com.np" className="hover:text-primary transition-colors">
-              Email: hello@bbhatt.com.np
-            </a>
             <div className="mt-2 flex items-center gap-4">
+              <Link href="https://bbhatt.com.np" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
+                <Globe className="h-5 w-5" />
+                <span className="sr-only">Website</span>
+              </Link>
               <Link href="https://www.facebook.com/share/1BnJr4X2Ec/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
