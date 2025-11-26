@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -30,7 +31,6 @@ export function StudentsTable() {
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   
-  // A simple way to force a refetch
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   const studentsQuery = useMemoFirebase(() => {
@@ -61,8 +61,6 @@ export function StudentsTable() {
   }, [students, searchTerm]);
 
   const handleActionComplete = () => {
-    // Incrementing the trigger will cause the useMemoFirebase hook to re-evaluate
-    // and the useCollection hook to refetch the data.
     setRefetchTrigger(count => count + 1);
   };
 
@@ -88,9 +86,9 @@ export function StudentsTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Student ID</TableHead>
-              <TableHead>Class</TableHead>
-              <TableHead>Section</TableHead>
+              <TableHead className="hidden sm:table-cell">Student ID</TableHead>
+              <TableHead className="hidden md:table-cell">Class</TableHead>
+              <TableHead className="hidden md:table-cell">Section</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -101,9 +99,9 @@ export function StudentsTable() {
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-6 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell className="hidden sm:table-cell"><Skeleton className="h-6 w-24" /></TableCell>
+                  <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                 </TableRow>
               ))
@@ -111,9 +109,9 @@ export function StudentsTable() {
               filteredStudents.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell>{student.studentId}</TableCell>
-                  <TableCell>{student.class}</TableCell>
-                  <TableCell>{student.section}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{student.studentId}</TableCell>
+                  <TableCell className="hidden md:table-cell">{student.class}</TableCell>
+                  <TableCell className="hidden md:table-cell">{student.section}</TableCell>
                   <TableCell>
                     <StudentActions student={student} onActionComplete={handleActionComplete} />
                   </TableCell>
