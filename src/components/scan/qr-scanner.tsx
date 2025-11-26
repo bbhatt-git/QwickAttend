@@ -26,8 +26,9 @@ export function QrScanner() {
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Pre-load the audio files for instant playback from reliable URLs
-    successAudioRef.current = new Audio('https://firebasestudio.b-cdn.net/sounds/success.mp3');
+    // Pre-load the audio files for instant playback.
+    // The success sound is now local, assuming you place it in `public/sounds/success.mp3`
+    successAudioRef.current = new Audio('/sounds/success.mp3');
     duplicateAudioRef.current = new Audio('https://firebasestudio.b-cdn.net/sounds/duplicate.mp3');
     errorAudioRef.current = new Audio('https://firebasestudio.b-cdn.net/sounds/error.mp3');
   }, []);
