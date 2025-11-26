@@ -58,7 +58,7 @@ export function QrScanner() {
             setTimeout(() => {
               setScanResult(null);
               processingRef.current = false;
-            }, 500);
+            }, 3000);
         }
     };
     
