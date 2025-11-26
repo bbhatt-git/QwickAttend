@@ -4,7 +4,7 @@ import { QrCode } from 'lucide-react';
 
 export default function LoginPage() {
   return (
-    <Card className="w-full max-w-md border-none bg-transparent shadow-none">
+    <Card className="w-full max-w-md glass-card">
       <CardHeader className="items-center text-center">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <QrCode className="h-8 w-8" />
