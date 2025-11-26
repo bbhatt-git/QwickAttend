@@ -17,17 +17,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Suspense>
         </main>
         <footer className="mt-auto flex flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5 font-medium">
-                <Lightbulb className="h-4 w-4" />
-                An idea by Bhupesh Raj Bhatt & Sanjay Thapa
-            </div>
-            <div className="flex items-center gap-1.5">
-              Made with <Heart className="h-4 w-4 text-red-500 fill-current" /> by Bhupesh Raj Bhatt
+            <div className="flex flex-col items-center gap-1.5">
+                <div className="flex items-center gap-2 font-medium">
+                    <Lightbulb className="h-4 w-4" />
+                    <span>An idea by Bhupesh Raj Bhatt & Sanjay Thapa</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    Made with <Heart className="h-4 w-4 text-red-500 fill-current" /> by Bhupesh Raj Bhatt
+                </div>
             </div>
             <a href="mailto:hello@bbhatt.com.np" className="hover:text-primary transition-colors">
-              Email: hello@bbhatt.com.np
+              hello@bbhatt.com.np
             </a>
-            <div className="mt-1 flex items-center gap-4">
+            <div className="mt-2 flex items-center gap-4">
               <Link href="https://www.facebook.com/share/1BnJr4X2Ec/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
