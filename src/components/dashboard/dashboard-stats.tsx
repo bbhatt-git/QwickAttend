@@ -1,69 +1,86 @@
 
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, UserX } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Student } from '@/lib/types';
 
 export default function DashboardStats() {
   const { user } = useUser();
   const firestore = useFirestore();
+  
   const [totalStudents, setTotalStudents] = useState(0);
   const [presentStudents, setPresentStudents] = useState(0);
-  const [studentsLoading, setStudentsLoading] = useState(true);
-  const [attendanceLoading, setAttendanceLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
 
   useEffect(() => {
     if (!user) {
-      setStudentsLoading(false);
-      setAttendanceLoading(false);
+      setIsLoading(false);
       return;
     };
 
-    setStudentsLoading(true);
+    setIsLoading(true);
+    
+    // 1. Get all students first to establish a total count.
     const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
     const studentsQuery = query(studentsCollection);
-    const unsubscribeStudents = onSnapshot(studentsQuery, (snapshot) => {
-      setTotalStudents(snapshot.size);
-      setStudentsLoading(false);
-    }, (error) => {
-      console.error("Error fetching total students:", error);
-      setStudentsLoading(false);
-    });
 
-    setAttendanceLoading(true);
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
-    const attendanceQuery = query(
-      attendanceCollection,
-      where('date', '==', todayStr)
-    );
-    const unsubscribeAttendance = onSnapshot(attendanceQuery, (snapshot) => {
-      setPresentStudents(snapshot.size);
-      setAttendanceLoading(false);
-    }, (error) => {
-      console.error("Error fetching present students:", error);
-      setAttendanceLoading(false);
-    });
-    
-    return () => {
-      unsubscribeStudents();
-      unsubscribeAttendance();
+    const fetchInitialData = async () => {
+      try {
+        const studentSnapshot = await getDocs(studentsQuery);
+        const allStudents = studentSnapshot.docs.map(doc => doc.data() as Student);
+        setTotalStudents(allStudents.length);
+
+        // 2. Now that we have the total, set up the real-time listener for attendance.
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
+        const attendanceQuery = query(
+          attendanceCollection,
+          where('date', '==', todayStr)
+        );
+
+        const unsubscribeAttendance = onSnapshot(attendanceQuery, (snapshot) => {
+          setPresentStudents(snapshot.size);
+          // Data is now consistent
+          setIsLoading(false);
+        }, (error) => {
+          console.error("Error fetching present students:", error);
+          setIsLoading(false);
+        });
+        
+        // Also listen for changes in student count in case a student is added/deleted
+        const unsubscribeStudents = onSnapshot(studentsQuery, (snapshot) => {
+          setTotalStudents(snapshot.size);
+        });
+
+        return () => {
+          unsubscribeAttendance();
+          unsubscribeStudents();
+        };
+
+      } catch (error) {
+        console.error("Error fetching initial student data:", error);
+        setIsLoading(false);
+      }
     };
+
+    fetchInitialData();
+
   }, [user, firestore]);
 
   const absentStudents = Math.max(0, totalStudents - presentStudents);
+
   const stats = {
     total: totalStudents,
     present: presentStudents,
     absent: absentStudents,
   };
-
-  const isLoading = studentsLoading || attendanceLoading;
 
   if (isLoading) {
     return (
