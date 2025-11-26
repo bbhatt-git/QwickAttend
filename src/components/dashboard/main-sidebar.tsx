@@ -11,7 +11,6 @@ import {
 import {
   LayoutDashboard,
   Users,
-  FileUp,
   QrCode,
   CalendarClock,
   School,
@@ -21,7 +20,6 @@ import {
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/students', icon: Users, label: 'Students' },
-  { href: '/dashboard/import', icon: FileUp, label: 'Import' },
   { href: '/dashboard/scan', icon: QrCode, label: 'Scan QR' },
   { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
   { href: '/dashboard/generate-qr', icon: AppWindow, label: 'Generate QR' },

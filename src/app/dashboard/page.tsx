@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   Card,
@@ -7,24 +9,19 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, QrCode, CalendarClock, FileUp, ArrowUpRight } from 'lucide-react';
+import { Users, QrCode, CalendarClock, ArrowUpRight } from 'lucide-react';
+import WelcomeHeader from '@/components/dashboard/welcome-header';
 
 const quickActions = [
   { href: '/dashboard/students', title: 'Manage Students', description: 'Add, edit, or view student details.', icon: Users },
   { href: '/dashboard/scan', title: 'Scan QR Code', description: 'Start an attendance session.', icon: QrCode },
   { href: '/dashboard/records', title: 'View Records', description: 'Check historical attendance data.', icon: CalendarClock },
-  { href: '/dashboard/import', title: 'Import Students', description: 'Bulk upload students from a CSV file.', icon: FileUp },
 ];
 
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          An overview of your class attendance.
-        </p>
-      </div>
+      <WelcomeHeader />
 
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Quick Actions</h2>
