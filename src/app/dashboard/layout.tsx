@@ -1,7 +1,7 @@
 
 import Header from '@/components/dashboard/header';
 import MainSidebar from '@/components/dashboard/main-sidebar';
-import { Loader2, Facebook, Github, Instagram } from 'lucide-react';
+import { Loader2, Facebook, Github, Instagram, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -16,12 +16,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {children}
           </Suspense>
         </main>
-        <footer className="flex flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground">
-            <p>Made with ♥ by Bhupesh Raj Bhatt</p>
+        <footer className="mt-auto flex flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              Made with <Heart className="h-4 w-4 text-red-500 fill-current" /> by Bhupesh Raj Bhatt
+            </div>
             <a href="mailto:hello@bbhatt.com.np" className="hover:text-primary transition-colors">
               hello@bbhatt.com.np
             </a>
-            <div className="mt-2 flex items-center gap-4">
+            <div className="mt-1 flex items-center gap-4">
               <Link href="https://www.facebook.com/share/1BnJr4X2Ec/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
