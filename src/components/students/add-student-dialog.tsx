@@ -5,8 +5,12 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useFirebaseApp } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
+import QRCode from 'qrcode';
+import { collection, doc, setDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 import { SECTIONS } from '@/lib/constants';
 
@@ -46,6 +50,9 @@ const studentFormSchema = z.object({
 
 export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => void }) {
   const { user } = useUser();
+  const firestore = useFirestore();
+  const app = useFirebaseApp();
+  const storage = getStorage(app);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,24 +73,28 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
     setIsSubmitting(true);
 
     try {
-      const idToken = await user.getIdToken();
-      const response = await fetch('/api/create-student', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
-        body: JSON.stringify(values),
-      });
+      const studentsCollectionRef = collection(firestore, `teachers/${user.uid}/students`);
+      const studentDocRef = doc(studentsCollectionRef);
+      const studentId = uuidv4().slice(0, 8).toUpperCase();
+      
+      const qrCodeDataUrl = await QRCode.toDataURL(studentId);
+      const storageRef = ref(storage, `qrcodes/${user.uid}/${studentId}.png`);
+      await uploadString(storageRef, qrCodeDataUrl, 'data_url');
+      const qrCodeUrl = await getDownloadURL(storageRef);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create student.');
-      }
+      const newStudent = {
+        id: studentDocRef.id,
+        name: values.name,
+        class: values.class,
+        section: values.section,
+        studentId,
+        qrCodeUrl,
+        teacherId: user.uid,
+      };
 
-      const result = await response.json();
+      await setDoc(studentDocRef, newStudent);
 
-      toast({ title: 'Success', description: `${result.name} has been added.` });
+      toast({ title: 'Success', description: `${values.name} has been added.` });
       onStudentAdded?.();
       form.reset({ name: '', class: '', section: undefined });
       setOpen(false);
@@ -93,7 +104,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to add student. Please try again.'
+        description: error.message || 'Failed to add student. Please check permissions and try again.'
       });
     } finally {
       setIsSubmitting(false);
