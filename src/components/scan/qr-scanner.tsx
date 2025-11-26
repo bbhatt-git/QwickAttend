@@ -11,8 +11,6 @@ import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-
 
 export function QrScanner() {
   const scannerRef = useRef<HTMLDivElement>(null);
@@ -29,6 +27,7 @@ export function QrScanner() {
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // Preload audio files for faster playback
     successAudioRef.current = new Audio('/sounds/success.mp3');
     duplicateAudioRef.current = new Audio('/sounds/duplicate.mp3');
     errorAudioRef.current = new Audio('/sounds/error.mp3');
@@ -43,30 +42,14 @@ export function QrScanner() {
         return;
     }
     
-    const html5QrCode = new Html5Qrcode(scannerRef.current.id, {
-       experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true
-      }
-    });
+    const html5QrCode = new Html5Qrcode(scannerRef.current.id);
     html5QrCodeRef.current = html5QrCode;
     
     const qrCodeSuccessCallback = (decodedText: string) => {
-        if(processingRef.current) return;
+        if (processingRef.current) return;
         
         processingRef.current = true;
-        
-        // Optimistic UI update for instant feedback
-        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-        setLastResult({ text: decodedText, type: 'success' });
-
-        // Handle DB logic in the background
         handleAttendance(decodedText);
-        
-        // Cooldown and UI reset
-        setTimeout(() => {
-          setLastResult(null);
-          processingRef.current = false;
-        }, 3000);
     };
     
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
@@ -101,7 +84,6 @@ export function QrScanner() {
 
     startScanner();
 
-
     return () => {
       if (html5QrCodeRef.current?.isScanning) {
         html5QrCodeRef.current.stop().catch(err => console.error("Failed to stop QR scanner.", err));
@@ -110,55 +92,65 @@ export function QrScanner() {
   }, [user, toast]);
 
  const handleAttendance = async (studentId: string): Promise<void> => {
-    if (!user) return;
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    if (!user) {
+        processingRef.current = false;
+        return;
+    }
     
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    let status: 'success' | 'duplicate' | 'error' = 'error';
+    let studentName = 'Unknown Student';
+
     try {
         const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
         const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
         const studentSnapshot = await getDocs(studentQuery);
 
-        if(studentSnapshot.empty) {
-            toast({ variant: 'destructive', title: 'Student not found', description: 'This student is not in your roster.' });
-            return;
-        }
-        const studentName = studentSnapshot.docs[0].data().name;
+        if (studentSnapshot.empty) {
+            status = 'error';
+            toast({ variant: 'destructive', title: 'Student not found', description: `Student ID "${studentId}" is not in your roster.` });
+        } else {
+            studentName = studentSnapshot.docs[0].data().name;
+            const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
+            const attendanceQuery = query(
+                attendanceCollection,
+                where('studentId', '==', studentId),
+                where('date', '==', todayStr)
+            );
+            const querySnapshot = await getDocs(attendanceQuery);
 
-        const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
-        const attendanceQuery = query(
-            attendanceCollection,
-            where('studentId', '==', studentId),
-            where('date', '==', todayStr)
-        );
-        const querySnapshot = await getDocs(attendanceQuery);
-
-        if (!querySnapshot.empty) {
-            const existingDoc = querySnapshot.docs[0];
-            const status = existingDoc.data().status;
-            
-            if (status === 'present') {
-                 toast({ variant: 'default', title: 'Already Present', description: `Student ${studentName} has already been marked present.` });
-            } else { // if status is 'on_leave'
-                 // Non-blocking update
-                 setDoc(existingDoc.ref, { status: 'present', timestamp: Timestamp.now() }, { merge: true });
-                 toast({ title: 'Status Updated', description: `${studentName} status updated to present.` });
+            if (!querySnapshot.empty) {
+                status = 'duplicate';
+                toast({ variant: 'default', title: 'Already Present', description: `${studentName} has already been marked present today.` });
+            } else {
+                await addDoc(attendanceCollection, {
+                    studentId,
+                    teacherId: user.uid,
+                    date: todayStr,
+                    timestamp: Timestamp.now(),
+                    status: 'present'
+                });
+                status = 'success';
+                toast({ title: 'Success', description: `${studentName} marked as present.` });
             }
-            return;
         }
-        
-        // Use non-blocking add
-        addDocumentNonBlocking(attendanceCollection, {
-            studentId,
-            teacherId: user.uid,
-            date: todayStr,
-            timestamp: Timestamp.now(),
-            status: 'present'
-        });
-        toast({ title: 'Success', description: `${studentName} marked as present.` });
-
     } catch (error) {
         console.error("Error marking attendance:", error);
+        status = 'error';
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark attendance. Please try again.' });
+    } finally {
+        // Play the correct sound and show visual feedback
+        if (status === 'success') successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        else if (status === 'duplicate') duplicateAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        else errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+
+        setLastResult({ text: studentId, type: status });
+
+        // Cooldown and UI reset
+        setTimeout(() => {
+          setLastResult(null);
+          processingRef.current = false;
+        }, 3000);
     }
   };
 
