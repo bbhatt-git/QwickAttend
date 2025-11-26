@@ -40,11 +40,9 @@ import { Skeleton } from '../ui/skeleton';
 import { Input } from '../ui/input';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { EditStudentDialog } from './edit-student-dialog';
 
-// NOTE: Edit functionality is not implemented in this component as it's a larger feature.
-// A similar dialog to AddStudentDialog would be created for editing.
-
-export function StudentActions({ student }: { student: Student }) {
+export function StudentActions({ student, onActionComplete }: { student: Student; onActionComplete: () => void; }) {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [isLinkQrDialogOpen, setIsLinkQrDialogOpen] = useState(false);
@@ -73,6 +71,7 @@ export function StudentActions({ student }: { student: Student }) {
 
       toast({ title: 'Success', description: `${student.name} has been deleted.` });
       setIsDeleteAlertOpen(false);
+      onActionComplete();
     } catch (error) {
       console.error("Error deleting student: ", error);
       const permissionError = new FirestorePermissionError({
@@ -88,13 +87,20 @@ export function StudentActions({ student }: { student: Student }) {
 
   const handleLinkQr = async () => {
     setIsLinking(true);
+    const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
     try {
-      const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
       await updateDoc(studentDocRef, { qrCodeUrl: qrLink });
       toast({ title: 'Success', description: 'QR Code URL has been updated.' });
       setIsLinkQrDialogOpen(false);
+      onActionComplete();
     } catch (error) {
       console.error("Error linking QR code: ", error);
+      const permissionError = new FirestorePermissionError({
+        path: studentDocRef.path,
+        operation: 'update',
+        requestResourceData: { qrCodeUrl: qrLink },
+      });
+      errorEmitter.emit('permission-error', permissionError);
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to link QR code. Please try again.' });
     } finally {
       setIsLinking(false);
@@ -118,9 +124,11 @@ export function StudentActions({ student }: { student: Student }) {
           <DropdownMenuItem onSelect={() => setIsLinkQrDialogOpen(true)}>
             <LinkIcon className="mr-2 h-4 w-4" /> Link QR Code
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => alert('Edit functionality to be implemented.')}>
-            <Edit className="mr-2 h-4 w-4" /> Edit
-          </DropdownMenuItem>
+          <EditStudentDialog student={student} onStudentUpdated={onActionComplete}>
+             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <Edit className="mr-2 h-4 w-4" /> Edit
+             </DropdownMenuItem>
+          </EditStudentDialog>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setIsDeleteAlertOpen(true)} className="text-destructive">
             <Trash2 className="mr-2 h-4 w-4" /> Delete

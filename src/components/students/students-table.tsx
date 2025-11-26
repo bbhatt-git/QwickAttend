@@ -54,7 +54,7 @@ export function StudentsTable() {
     );
   }, [students, searchTerm]);
 
-  const handleStudentAdded = () => {
+  const handleActionComplete = () => {
     // Incrementing the trigger will cause the useMemoFirebase hook to re-evaluate
     // and the useCollection hook to refetch the data.
     setRefetchTrigger(count => count + 1);
@@ -74,7 +74,7 @@ export function StudentsTable() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
-          <AddStudentDialog onStudentAdded={handleStudentAdded} />
+          <AddStudentDialog onStudentAdded={handleActionComplete} />
         </div>
       </CardHeader>
       <CardContent>
@@ -125,7 +125,7 @@ export function StudentsTable() {
                   <TableCell>{student.studentId}</TableCell>
                   <TableCell>{student.class} - {student.section}</TableCell>
                   <TableCell>
-                    <StudentActions student={student} />
+                    <StudentActions student={student} onActionComplete={handleActionComplete} />
                   </TableCell>
                 </TableRow>
               ))
