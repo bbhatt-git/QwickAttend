@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-bg",
+      "description": "A beautiful night scene with a large moon and a silhouetted tree.",
+      "imageUrl": "https://images.unsplash.com/photo-1632168704789-8d4c9443efc0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxuaWdodCUyMGxhbmRzY2FwZXxlbnwwfHx8fDE3NjQxNzY4NDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "night landscape"
+    }
+  ]
 }
