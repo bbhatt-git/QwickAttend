@@ -40,6 +40,7 @@ export function StudentsTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [sectionFilter, setSectionFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('all');
   
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
@@ -64,6 +65,12 @@ export function StudentsTable() {
     }));
   }, [studentsFromHook, user]);
 
+  const uniqueClasses = useMemo(() => {
+    if (!students) return [];
+    const classes = new Set(students.map(s => s.class));
+    return Array.from(classes).sort();
+  }, [students]);
+
   const filteredStudents = useMemo(() => {
     if (!students) return [];
     
@@ -71,6 +78,10 @@ export function StudentsTable() {
 
     if (sectionFilter !== 'all') {
       filtered = filtered.filter(student => student.section === sectionFilter);
+    }
+
+    if (classFilter !== 'all') {
+      filtered = filtered.filter(student => student.class === classFilter);
     }
     
     if (searchTerm) {
@@ -81,7 +92,7 @@ export function StudentsTable() {
     }
 
     return filtered;
-  }, [students, searchTerm, sectionFilter]);
+  }, [students, searchTerm, sectionFilter, classFilter]);
 
   const handleActionComplete = () => {
     setRefetchTrigger(count => count + 1);
@@ -102,6 +113,17 @@ export function StudentsTable() {
             className="w-full sm:max-w-xs"
           />
           <div className="flex w-full sm:w-auto gap-2">
+             <Select value={classFilter} onValueChange={setClassFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {uniqueClasses.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
              <Select value={sectionFilter} onValueChange={setSectionFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by section" />
@@ -120,7 +142,6 @@ export function StudentsTable() {
               <SelectContent>
                 <SelectItem value="name">Sort by Name</SelectItem>
                 <SelectItem value="studentId">Sort by Student ID</SelectItem>
-                <SelectItem value="class">Sort by Class</SelectItem>
               </SelectContent>
             </Select>
             <AddStudentDialog onStudentAdded={handleActionComplete} />
