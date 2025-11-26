@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -26,7 +27,6 @@ export function QrScanner() {
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Preload audio files for faster playback
     successAudioRef.current = new Audio('/sounds/success.mp3');
     duplicateAudioRef.current = new Audio('/sounds/duplicate.mp3');
     errorAudioRef.current = new Audio('/sounds/error.mp3');
@@ -41,14 +41,29 @@ export function QrScanner() {
         return;
     }
     
-    const html5QrCode = new Html5Qrcode(scannerRef.current.id, false); // verbose = false
+    const html5QrCode = new Html5Qrcode(scannerRef.current.id, false);
     html5QrCodeRef.current = html5QrCode;
     
     const qrCodeSuccessCallback = (decodedText: string) => {
         if (processingRef.current) return;
         
         processingRef.current = true;
+        
+        // --- Optimistic UI Update ---
+        // 1. Play success sound immediately.
+        successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+
+        // 2. Show visual feedback immediately.
+        setLastResult({ text: decodedText, type: 'success' });
+        
+        // 3. Handle database logic in the background.
         handleAttendance(decodedText);
+
+        // 4. Start cooldown and UI reset timer.
+        setTimeout(() => {
+          setLastResult(null);
+          processingRef.current = false;
+        }, 2000);
     };
     
     const config = { fps: 10, qrbox: { width: 250, height: 250 }, showTorchButtonIfSupported: true };
@@ -65,7 +80,7 @@ export function QrScanner() {
         console.warn("Failed to start rear camera, trying any camera:", err);
         try {
           await html5QrCode.start(
-            {}, // Use any available camera
+            {}, 
             config,
             qrCodeSuccessCallback,
             undefined
@@ -92,64 +107,45 @@ export function QrScanner() {
 
  const handleAttendance = async (studentId: string): Promise<void> => {
     if (!user) {
-        processingRef.current = false;
         return;
     }
     
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    let status: 'success' | 'duplicate' | 'error' = 'error';
-    let studentName = 'Unknown Student';
-
+    
     try {
         const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
         const studentQuery = query(studentsCollection, where('studentId', '==', studentId));
         const studentSnapshot = await getDocs(studentQuery);
 
         if (studentSnapshot.empty) {
-            status = 'error';
             toast({ variant: 'destructive', title: 'Student not found', description: `Student ID "${studentId}" is not in your roster.` });
-        } else {
-            studentName = studentSnapshot.docs[0].data().name;
-            const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
-            const attendanceQuery = query(
-                attendanceCollection,
-                where('studentId', '==', studentId),
-                where('date', '==', todayStr)
-            );
-            const querySnapshot = await getDocs(attendanceQuery);
+            return;
+        } 
+        
+        const studentName = studentSnapshot.docs[0].data().name;
+        const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
+        const attendanceQuery = query(
+            attendanceCollection,
+            where('studentId', '==', studentId),
+            where('date', '==', todayStr)
+        );
+        const querySnapshot = await getDocs(attendanceQuery);
 
-            if (!querySnapshot.empty) {
-                status = 'duplicate';
-                toast({ variant: 'default', title: 'Already Present', description: `${studentName} has already been marked present today.` });
-            } else {
-                await addDoc(attendanceCollection, {
-                    studentId,
-                    teacherId: user.uid,
-                    date: todayStr,
-                    timestamp: Timestamp.now(),
-                    status: 'present'
-                });
-                status = 'success';
-                toast({ title: 'Success', description: `${studentName} marked as present.` });
-            }
+        if (!querySnapshot.empty) {
+            toast({ variant: 'default', title: 'Already Present', description: `${studentName} has already been marked present today.` });
+        } else {
+            await addDoc(attendanceCollection, {
+                studentId,
+                teacherId: user.uid,
+                date: todayStr,
+                timestamp: Timestamp.now(),
+                status: 'present'
+            });
+            toast({ title: 'Success', description: `${studentName} marked as present.` });
         }
     } catch (error) {
         console.error("Error marking attendance:", error);
-        status = 'error';
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark attendance. Please try again.' });
-    } finally {
-        // Play the correct sound and show visual feedback
-        if (status === 'success') successAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-        else if (status === 'duplicate') duplicateAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-        else errorAudioRef.current?.play().catch(e => console.error("Audio play failed:", e));
-
-        setLastResult({ text: studentId, type: status });
-
-        // Cooldown and UI reset
-        setTimeout(() => {
-          setLastResult(null);
-          processingRef.current = false;
-        }, 2000);
     }
   };
 
@@ -185,3 +181,4 @@ export function QrScanner() {
     </Card>
   );
 }
+
