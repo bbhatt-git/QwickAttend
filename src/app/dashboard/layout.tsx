@@ -22,15 +22,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               hello@bbhatt.com.np
             </a>
             <div className="mt-2 flex items-center gap-4">
-              <Link href="https://www.facebook.com/bhupesh.bhatt.35" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
+              <Link href="https://www.facebook.com/share/1BnJr4X2Ec/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
                 <Facebook className="h-5 w-5" />
                 <span className="sr-only">Facebook</span>
               </Link>
-              <Link href="https://github.com/bhupeshbhatt" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
+              <Link href="https://github.com/bbhatt-git" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
                 <Github className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
               </Link>
-              <Link href="https://www.instagram.com/bhupeshbhatt_" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
+              <Link href="https://www.instagram.com/_bbhatt?igsh=MWdjZnc3Y2t6bXp1bA==" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-primary">
                 <Instagram className="h-5 w-5" />
                 <span className="sr-only">Instagram</span>
               </Link>
