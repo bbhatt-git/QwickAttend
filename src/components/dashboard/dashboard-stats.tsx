@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -13,35 +14,40 @@ export default function DashboardStats() {
   const firestore = useFirestore();
   const [totalStudents, setTotalStudents] = useState(0);
   const [presentStudents, setPresentStudents] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [studentsLoading, setStudentsLoading] = useState(true);
+  const [attendanceLoading, setAttendanceLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setStudentsLoading(false);
+      setAttendanceLoading(false);
+      return;
+    };
 
-    setLoading(true);
-
+    setStudentsLoading(true);
     const studentsCollection = collection(firestore, `teachers/${user.uid}/students`);
     const studentsQuery = query(studentsCollection);
-
     const unsubscribeStudents = onSnapshot(studentsQuery, (snapshot) => {
       setTotalStudents(snapshot.size);
-      setLoading(false);
+      setStudentsLoading(false);
     }, (error) => {
       console.error("Error fetching total students:", error);
-      setLoading(false);
+      setStudentsLoading(false);
     });
 
+    setAttendanceLoading(true);
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
     const attendanceQuery = query(
       attendanceCollection,
       where('date', '==', todayStr)
     );
-
     const unsubscribeAttendance = onSnapshot(attendanceQuery, (snapshot) => {
       setPresentStudents(snapshot.size);
+      setAttendanceLoading(false);
     }, (error) => {
       console.error("Error fetching present students:", error);
+      setAttendanceLoading(false);
     });
     
     return () => {
@@ -57,7 +63,9 @@ export default function DashboardStats() {
     absent: absentStudents < 0 ? 0 : absentStudents,
   };
 
-  if (loading) {
+  const isLoading = studentsLoading || attendanceLoading;
+
+  if (isLoading) {
     return (
       <>
         <Skeleton className="h-[126px] w-full" />
