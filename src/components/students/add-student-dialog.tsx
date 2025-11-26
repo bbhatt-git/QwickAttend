@@ -46,6 +46,7 @@ const studentFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   class: z.string().min(1, 'Class is required.'),
   section: z.enum(SECTIONS, { required_error: 'Please select a section.' }),
+  contact: z.string().optional(),
 });
 
 export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => void }) {
@@ -62,6 +63,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
     defaultValues: {
       name: '',
       class: '',
+      contact: '',
     },
   });
 
@@ -87,6 +89,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
         name: values.name,
         class: values.class,
         section: values.section,
+        contact: values.contact || '',
         studentId,
         qrCodeUrl,
         teacherId: user.uid,
@@ -96,7 +99,7 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
 
       toast({ title: 'Success', description: `${values.name} has been added.` });
       onStudentAdded?.();
-      form.reset({ name: '', class: '', section: undefined });
+      form.reset({ name: '', class: '', section: undefined, contact: '' });
       setOpen(false);
 
     } catch (error: any) {
@@ -174,6 +177,19 @@ export function AddStudentDialog({ onStudentAdded }: { onStudentAdded?: () => vo
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="contact"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Number (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Parent's phone number" {...field} disabled={isSubmitting} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

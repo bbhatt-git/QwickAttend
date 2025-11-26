@@ -1,8 +1,16 @@
 
 import type { Timestamp } from 'firebase/firestore';
-import type { Student } from './student';
 
-export type { Student };
+export type Student = {
+  id: string;
+  name: string;
+  class: string;
+  section: string;
+  studentId: string;
+  qrCodeUrl: string;
+  teacherId: string;
+  contact?: string;
+};
 
 export type AttendanceRecord = {
   id: string;

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { format, isValid, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
-import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
@@ -290,7 +290,20 @@ export default function AttendanceView() {
           <ScrollArea className="h-72">
              {loading ? <Skeleton className="h-full w-full"/> : absentStudents.length > 0 ? (
                 <ul className="space-y-2">
-                    {absentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50 flex justify-between items-center">{s.name} <Button variant="outline" size="sm" onClick={() => handleMarkAsLeave(s)}>Mark Leave</Button></li>)}
+                    {absentStudents.map(s => (
+                      <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50 flex justify-between items-center">
+                        <div>
+                          {s.name}
+                          {s.contact && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                              <Phone className="h-3 w-3" />
+                              <a href={`tel:${s.contact}`} className="hover:underline">{s.contact}</a>
+                            </div>
+                          )}
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => handleMarkAsLeave(s)}>Mark Leave</Button>
+                      </li>
+                    ))}
                 </ul>
             ) : <p className="text-sm text-muted-foreground text-center pt-10">All students are accounted for!</p>}
             </ScrollArea>

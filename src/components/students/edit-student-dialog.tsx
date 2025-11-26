@@ -47,6 +47,7 @@ const studentFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   class: z.string().min(1, 'Class is required.'),
   section: z.enum(SECTIONS, { required_error: 'Please select a section.' }),
+  contact: z.string().optional(),
 });
 
 type EditStudentDialogProps = {
@@ -67,6 +68,7 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
       name: student.name,
       class: student.class,
       section: student.section,
+      contact: student.contact || '',
     },
   });
 
@@ -78,8 +80,12 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
         return;
     }
     const studentDocRef = doc(firestore, `teachers/${student.teacherId}/students`, student.id);
+    const updateValues = {
+        ...values,
+        contact: values.contact || ''
+    }
     try {
-      await updateDoc(studentDocRef, values);
+      await updateDoc(studentDocRef, updateValues);
       toast({ title: 'Success', description: 'Student record has been updated.' });
       onStudentUpdated?.();
       setOpen(false);
@@ -88,7 +94,7 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
       const permissionError = new FirestorePermissionError({
         path: studentDocRef.path,
         operation: 'update',
-        requestResourceData: values,
+        requestResourceData: updateValues,
       });
       errorEmitter.emit('permission-error', permissionError);
       toast({
@@ -108,6 +114,7 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
         name: student.name,
         class: student.class,
         section: student.section,
+        contact: student.contact || '',
       });
     }
     setOpen(isOpen);
@@ -157,7 +164,7 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Section</FormLabel>
-                  <Select onValuechange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a section" />
@@ -171,6 +178,19 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="contact"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Number (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Parent's phone number" {...field} disabled={isSubmitting} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

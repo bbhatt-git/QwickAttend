@@ -34,6 +34,10 @@
         "teacherId": {
           "type": "string",
           "description": "Reference to Teacher. (Relationship: Teacher 1:N Student)"
+        },
+        "contact": {
+          "type": "string",
+          "description": "The student's contact phone number."
         }
       },
       "required": [
