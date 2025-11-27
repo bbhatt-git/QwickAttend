@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { format, isValid, startOfMonth, endOfMonth } from 'date-fns';
-import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone } from 'lucide-react';
+import { format, isValid, startOfMonth, endOfMonth, addDays, subDays } from 'date-fns';
+import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
@@ -154,9 +154,17 @@ export default function AttendanceView() {
     setIsDownloading(true);
   
     try {
-      const adMonthStart = startOfMonth(date);
-      const adMonthEnd = endOfMonth(date);
-  
+        const selectedBSDate = new NepaliDate(date);
+        const bsMonth = selectedBSDate.getMonth();
+        const bsYear = selectedBSDate.getYear();
+        const bsDaysInMonth = new NepaliDate(bsYear, bsMonth + 1, 0).getDate();
+
+        // Find the AD date range for the selected BS month
+        const firstDayOfBSMonth = new NepaliDate(bsYear, bsMonth, 1);
+        const lastDayOfBSMonth = new NepaliDate(bsYear, bsMonth, bsDaysInMonth);
+        const adMonthStart = firstDayOfBSMonth.toJsDate();
+        const adMonthEnd = lastDayOfBSMonth.toJsDate();
+
       const attendanceQuery = query(
         collection(firestore, `teachers/${user.uid}/attendance`),
         where('date', '>=', format(adMonthStart, 'yyyy-MM-dd')),
@@ -165,11 +173,6 @@ export default function AttendanceView() {
   
       const attendanceSnapshot = await getDocs(attendanceQuery);
       const monthlyAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
-  
-      const bsDate = new NepaliDate(date);
-      const bsMonth = bsDate.getMonth() + 1;
-      const bsYear = bsDate.getYear();
-      const bsDaysInMonth = new NepaliDate(bsYear, bsMonth, 0).getDate();
   
       const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
   
@@ -196,12 +199,14 @@ export default function AttendanceView() {
         }
   
         dateColumns.forEach(bsDay => {
-          const bsDateToCheck = new NepaliDate(bsYear, bsMonth -1, parseInt(bsDay));
+          const bsDateToCheck = new NepaliDate(bsYear, bsMonth, parseInt(bsDay));
           const adDateToCheck = bsDateToCheck.toJsDate();
   
-          if (adDateToCheck.getMonth() !== adMonthStart.getMonth()) {
-            rowData[bsDay] = "-";
-            return;
+          // Check if the generated AD date is within the same month as the start date.
+          // This handles cases where BS month spans across AD months.
+          if (adDateToCheck < adMonthStart || adDateToCheck > adMonthEnd) {
+             rowData[bsDay] = "-"; // Not part of the month
+             return;
           }
   
           if (bsDateToCheck.getDay() === 6) { // 6 corresponds to Saturday in NepaliDate
@@ -231,7 +236,7 @@ export default function AttendanceView() {
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      let downloadFileName = `monthly_attendance_${bsYear}-${bsMonth}`;
+      let downloadFileName = `monthly_attendance_${bsYear}-${bsMonth + 1}`;
       if (classFilter !== 'all') {
         downloadFileName += `_${classFilter.replace(' ', '_')}`;
       }
@@ -255,35 +260,52 @@ export default function AttendanceView() {
     }
   };
 
+  const handleDateChange = (direction: 'prev' | 'next') => {
+    if (!date) return;
+    const newDate = direction === 'prev' ? subDays(date, 1) : addDays(date, 1);
+    if (newDate <= new Date()) {
+      setDate(newDate);
+    }
+  };
+  const isToday = date ? format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') : false;
+
   const bsDate = date ? new NepaliDate(date).format('DD, MMMM YYYY') : '';
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex items-center gap-2 flex-wrap">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-[240px] justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-               <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                initialFocus
-                disabled={(d) => d > new Date() || d < new Date("2000-01-01")}
-              />
-            </PopoverContent>
-          </Popover>
+        <div className="flex items-center">
+            <Button variant="outline" size="icon" onClick={() => handleDateChange('prev')} className="h-10 w-10 rounded-r-none">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[240px] justify-start text-left font-normal rounded-none",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                 <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  initialFocus
+                  disabled={(d) => d > new Date() || d < new Date("2000-01-01")}
+                />
+              </PopoverContent>
+            </Popover>
+            <Button variant="outline" size="icon" onClick={() => handleDateChange('next')} disabled={isToday} className="h-10 w-10 rounded-l-none">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
           <Select value={classFilter} onValueChange={setClassFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by class" />
