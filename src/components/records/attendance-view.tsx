@@ -275,7 +275,7 @@ export default function AttendanceView() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center">
+          <div className="flex items-center">
             <Button variant="outline" size="icon" onClick={() => handleDateChange('prev')} className="h-10 w-10 rounded-r-none">
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -306,6 +306,11 @@ export default function AttendanceView() {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+          {date && (
+            <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
+              <span className="font-semibold">BS:</span> {bsDate}
+            </div>
+          )}
           <Select value={classFilter} onValueChange={setClassFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by class" />
@@ -328,11 +333,6 @@ export default function AttendanceView() {
                 ))}
               </SelectContent>
             </Select>
-          {date && (
-            <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
-              <span className="font-semibold">BS: </span>{bsDate}
-            </div>
-          )}
         </div>
         <div className="flex gap-2">
             <Button onClick={handleMonthlyExport} disabled={isDownloading}>
