@@ -158,6 +158,7 @@ export default function AttendanceView() {
         const bsMonth = selectedBSDate.getMonth();
         const bsYear = selectedBSDate.getYear();
         const bsDaysInMonth = new NepaliDate(bsYear, bsMonth + 1, 0).getDate();
+        const todayAD = new Date();
 
         // Find the AD date range for the selected BS month
         const firstDayOfBSMonth = new NepaliDate(bsYear, bsMonth, 1);
@@ -202,8 +203,11 @@ export default function AttendanceView() {
           const bsDateToCheck = new NepaliDate(bsYear, bsMonth, parseInt(bsDay));
           const adDateToCheck = bsDateToCheck.toJsDate();
   
-          // Check if the generated AD date is within the same month as the start date.
-          // This handles cases where BS month spans across AD months.
+          if (adDateToCheck > todayAD) {
+            rowData[bsDay] = ''; // Leave future dates blank
+            return;
+          }
+  
           if (adDateToCheck < adMonthStart || adDateToCheck > adMonthEnd) {
              rowData[bsDay] = "-"; // Not part of the month
              return;
@@ -305,12 +309,12 @@ export default function AttendanceView() {
             <Button variant="outline" size="icon" onClick={() => handleDateChange('next')} disabled={isToday} className="h-10 w-10 rounded-l-none">
               <ChevronRight className="h-4 w-4" />
             </Button>
+            {date && (
+                <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md ml-2">
+                <span className="font-semibold">BS:</span> {bsDate}
+                </div>
+            )}
           </div>
-          {date && (
-            <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
-              <span className="font-semibold">BS:</span> {bsDate}
-            </div>
-          )}
           <Select value={classFilter} onValueChange={setClassFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by class" />
@@ -404,3 +408,5 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+    
