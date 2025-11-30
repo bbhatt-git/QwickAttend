@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -13,7 +13,7 @@ import type { Holiday } from '@/lib/types';
 import NepaliDate from 'nepali-date-converter';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
+import { NepaliCalendar } from '@/components/ui/nepali-calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -32,11 +32,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const holidayFormSchema = z.object({
   name: z.string().min(2, 'Holiday name must be at least 2 characters.'),
-  date: z.date({
-    required_error: 'A date is required.',
+  date: z.custom<NepaliDate>(val => val instanceof NepaliDate, {
+    message: 'A date is required.',
   }),
 });
 
@@ -62,11 +63,12 @@ export default function HolidaysPage() {
 
   const onSubmit = async (values: z.infer<typeof holidayFormSchema>) => {
     if (!user) return;
+    const adDate = values.date.toJsDate();
     try {
       await addDoc(collection(firestore, `teachers/${user.uid}/holidays`), {
         teacherId: user.uid,
         name: values.name,
-        date: format(values.date, 'yyyy-MM-dd'),
+        date: format(adDate, 'yyyy-MM-dd'),
       });
       toast({ title: 'Success', description: 'Holiday has been added.' });
       form.reset({name: '', date: undefined});
@@ -137,7 +139,7 @@ export default function HolidaysPage() {
                               )}
                             >
                               {field.value ? (
-                                format(field.value, 'PPP')
+                                `BS: ${field.value.format('DD, MMMM YYYY')}`
                               ) : (
                                 <span>Pick a date</span>
                               )}
@@ -146,12 +148,11 @@ export default function HolidaysPage() {
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date('2000-01-01')}
-                            initialFocus
+                           <NepaliCalendar
+                            value={field.value}
+                            onSelect={(date) => {
+                                field.onChange(date)
+                            }}
                           />
                         </PopoverContent>
                       </Popover>
