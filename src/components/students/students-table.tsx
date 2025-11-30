@@ -33,7 +33,6 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentActions } from '@/components/students/student-actions';
-import { AddStudentDialog } from './add-student-dialog';
 
 export function StudentsTable() {
   const { user } = useUser();
@@ -108,7 +107,6 @@ export function StudentsTable() {
             A list of all students in your classes.
             </CardDescription>
         </div>
-        <AddStudentDialog onStudentAdded={handleActionComplete} />
       </CardHeader>
       <CardContent>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pb-4 flex-wrap">
