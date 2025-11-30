@@ -182,10 +182,11 @@ export default function HolidaysPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
               ) : holidays && holidays.length > 0 ? (
-                holidays.map((holiday) => (
+                <ScrollArea className='h-full'>
+                {holidays.map((holiday) => (
                   <div
                     key={holiday.id}
-                    className="flex items-center justify-between rounded-md border p-3"
+                    className="flex items-center justify-between rounded-md border p-3 mb-2"
                   >
                     <div>
                       <p className="font-medium">{holiday.name}</p>
@@ -213,7 +214,8 @@ export default function HolidaysPage() {
                        </AlertDialogContent>
                     </AlertDialog>
                   </div>
-                ))
+                ))}
+                </ScrollArea>
               ) : (
                 <div className="flex h-full flex-col items-center justify-center text-center">
                     <CalendarOff className="h-12 w-12 text-muted-foreground" />

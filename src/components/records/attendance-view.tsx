@@ -296,7 +296,7 @@ export default function AttendanceView() {
   };
   const isToday = date ? format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') : false;
 
-  const bsDate = date ? new NepaliDate(date).format('DD, MMMM YYYY') : '';
+  const bsDate = date ? new NepaliDate(date) : new NepaliDate();
 
   const handleNotifyParent = (student: Student) => {
     if (!student.contact) {
@@ -326,12 +326,12 @@ export default function AttendanceView() {
                 <Button
                   variant={"outline"}
                   className={cn(
-                    "w-[200px] justify-start text-left font-normal rounded-none",
+                    "w-[280px] justify-start text-left font-normal rounded-none",
                     !date && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  {date ? `BS: ${bsDate.format('DD, MMMM YYYY')}` : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -348,11 +348,6 @@ export default function AttendanceView() {
               <ChevronRight className="h-4 w-4" />
             </Button>
             </div>
-            {date && (
-                <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
-                <span className="font-semibold">BS:</span> {bsDate}
-                </div>
-            )}
           <Select value={classFilter} onValueChange={setClassFilter}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by class" />
