@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format, parse, startOfMonth as startOfMonthAD, endOfMonth as endOfMonthAD } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import NepaliDate from 'nepali-date-converter';
@@ -62,29 +62,18 @@ export default function StudentHistoryView() {
         
         setIsLoadingHistory(true);
 
-        const bsDate = new NepaliDate(displayDate);
-        const bsYear = bsDate.getYear();
-        const bsMonth = bsDate.getMonth();
-
-        const firstDayOfBSMonth = new NepaliDate(bsYear, bsMonth, 1);
-        const lastDayOfBSMonth = new NepaliDate(bsYear, bsMonth, new NepaliDate(bsYear, bsMonth + 1, 0).getDate());
-
-        const adMonthStart = firstDayOfBSMonth.toJsDate();
-        const adMonthEnd = lastDayOfBSMonth.toJsDate();
-        
         const attendanceQuery = query(
             collection(firestore, `teachers/${user.uid}/attendance`),
             where('studentId', '==', selectedStudent.studentId),
-            where('date', '>=', format(adMonthStart, 'yyyy-MM-dd')),
-            where('date', '<=', format(adMonthEnd, 'yyyy-MM-dd'))
         );
+
         const snapshot = await getDocs(attendanceQuery);
         const history = snapshot.docs.map(doc => doc.data() as AttendanceRecord);
         setStudentHistory(history);
         setIsLoadingHistory(false);
     };
     fetchHistory();
-  }, [selectedStudent, user, firestore, displayDate]);
+  }, [selectedStudent, user, firestore]);
 
 
   const handleStudentSelect = async (student: Student) => {
@@ -173,7 +162,7 @@ export default function StudentHistoryView() {
     const currentDate = new NepaliDate(displayDate);
     let newDate: NepaliDate;
     if (direction === 'prev') {
-        newDate = new NepaliDate(currentDate.getYear(), currentDate.getMonth() -1, 1);
+        newDate = new NepaliDate(currentDate.getYear(), currentDate.getMonth() - 1, 1);
     } else {
         newDate = new NepaliDate(currentDate.getYear(), currentDate.getMonth() + 1, 1);
     }
@@ -326,3 +315,4 @@ export default function StudentHistoryView() {
     </Card>
   );
 }
+
