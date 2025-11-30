@@ -56,7 +56,7 @@ export default function StudentHistoryView() {
         where('studentId', '==', student.studentId)
       );
       const snapshot = await getDocs(attendanceQuery);
-      const history = snapshot.docs.map(doc => doc.data() as AttendanceRecord);
+      const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
       // Sort on the client side to avoid needing a composite index
       history.sort((a, b) => b.date.localeCompare(a.date));
       setStudentHistory(history);
@@ -187,7 +187,7 @@ export default function StudentHistoryView() {
                         ) : studentHistory.length > 0 ? (
                             <ul className="space-y-2">
                                 {studentHistory.map(record => (
-                                    <li key={record.id} className="flex justify-between items-center p-2 rounded-md bg-muted">
+                                    <li key={`${record.id}-${record.date}`} className="flex justify-between items-center p-2 rounded-md bg-muted">
                                         <span className="font-medium">{format(parse(record.date, 'yyyy-MM-dd', new Date()), 'PPP')}</span>
                                         <Badge variant={badgeVariant[record.status]}>{record.status.replace('_', ' ').toLocaleUpperCase()}</Badge>
                                     </li>
@@ -207,5 +207,7 @@ export default function StudentHistoryView() {
     </Card>
   );
 }
+
+    
 
     
