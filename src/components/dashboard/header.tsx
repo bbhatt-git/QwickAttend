@@ -43,7 +43,7 @@ export default function Header() {
 
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/60 px-4 backdrop-blur-xl sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button size="icon" variant="outline" className="sm:hidden">
@@ -51,7 +51,7 @@ export default function Header() {
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="glass-sheet sm:max-w-xs">
+        <SheetContent side="left" className="sm:max-w-xs">
           <SheetHeader>
             <SheetTitle>Navigation Menu</SheetTitle>
             <SheetDescription className="sr-only">Main navigation links for the dashboard.</SheetDescription>

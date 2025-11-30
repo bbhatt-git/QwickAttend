@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function LoginPage() {
   return (
-    <Card className="w-full max-w-md glass-card">
+    <Card className="w-full max-w-md">
       <CardHeader className="items-center text-center">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <QrCode className="h-8 w-8" />
