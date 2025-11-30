@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentActions } from '@/components/students/student-actions';
+import { AddStudentDialog } from './add-student-dialog';
 
 export function StudentsTable() {
   const { user } = useUser();
@@ -99,12 +101,17 @@ export function StudentsTable() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Your Students</CardTitle>
-        <CardDescription>
-          A list of all students in your classes.
-        </CardDescription>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pt-4 flex-wrap">
+      <CardHeader className="sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <CardTitle>Your Students</CardTitle>
+            <CardDescription>
+            A list of all students in your classes.
+            </CardDescription>
+        </div>
+        <AddStudentDialog onStudentAdded={handleActionComplete} />
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pb-4 flex-wrap">
           <Input
             placeholder="Filter by name or ID..."
             value={searchTerm}
@@ -145,8 +152,6 @@ export function StudentsTable() {
             </Select>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
