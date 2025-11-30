@@ -354,7 +354,7 @@ export default function AttendanceView() {
                 </div>
             )}
           <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by class" />
               </SelectTrigger>
               <SelectContent>
@@ -365,7 +365,7 @@ export default function AttendanceView() {
               </SelectContent>
             </Select>
           <Select value={sectionFilter} onValueChange={setSectionFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by section" />
               </SelectTrigger>
               <SelectContent>

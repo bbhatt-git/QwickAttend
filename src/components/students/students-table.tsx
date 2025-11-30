@@ -116,7 +116,7 @@ export function StudentsTable() {
           />
           <div className="flex gap-2 w-full sm:w-auto">
              <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by class" />
               </SelectTrigger>
               <SelectContent>
@@ -127,7 +127,7 @@ export function StudentsTable() {
               </SelectContent>
             </Select>
              <Select value={sectionFilter} onValueChange={setSectionFilter}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by section" />
               </SelectTrigger>
               <SelectContent>
