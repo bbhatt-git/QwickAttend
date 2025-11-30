@@ -192,7 +192,7 @@ export default function HolidaysPage() {
                     <div>
                       <p className="font-medium">{holiday.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new NepaliDate(new Date(holiday.date.replace(/-/g, '/'))).format('dddd, DD MMMM, YYYY')}
+                        {new NepaliDate(new Date(holiday.date.replace(/-/g, '/'))).format('DD MMMM, YYYY')}
                       </p>
                     </div>
                     <AlertDialog>
