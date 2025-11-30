@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -26,7 +27,6 @@ const navItems = [
   { href: '/dashboard/nfc', icon: Nfc, label: 'Scan NFC' },
   { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
   { href: '/dashboard/holidays', icon: CalendarOff, label: 'Holidays' },
-  { href: '/dashboard/generate-qr', icon: AppWindow, label: 'Generate QR' },
 ];
 
 export default function MainSidebar() {
