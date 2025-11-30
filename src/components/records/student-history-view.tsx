@@ -53,11 +53,12 @@ export default function StudentHistoryView() {
     if (user) {
       const attendanceQuery = query(
         collection(firestore, `teachers/${user.uid}/attendance`),
-        where('studentId', '==', student.studentId),
-        orderBy('date', 'desc')
+        where('studentId', '==', student.studentId)
       );
       const snapshot = await getDocs(attendanceQuery);
       const history = snapshot.docs.map(doc => doc.data() as AttendanceRecord);
+      // Sort on the client side to avoid needing a composite index
+      history.sort((a, b) => b.date.localeCompare(a.date));
       setStudentHistory(history);
     }
     setIsLoadingHistory(false);
@@ -206,3 +207,5 @@ export default function StudentHistoryView() {
     </Card>
   );
 }
+
+    
