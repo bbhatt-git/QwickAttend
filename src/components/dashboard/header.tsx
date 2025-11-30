@@ -19,7 +19,8 @@ import {
   CalendarClock,
   School,
   AppWindow,
-  Nfc
+  Nfc,
+  CalendarOff
 } from 'lucide-react';
 import { UserNav } from './user-nav';
 import { usePathname } from 'next/navigation';
@@ -32,6 +33,7 @@ const navItems = [
   { href: '/dashboard/scan', icon: QrCode, label: 'Scan QR' },
   { href: '/dashboard/nfc', icon: Nfc, label: 'Scan NFC' },
   { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
+  { href: '/dashboard/holidays', icon: CalendarOff, label: 'Holidays' },
   { href: '/dashboard/generate-qr', icon: AppWindow, label: 'Generate QR' },
 ];
 

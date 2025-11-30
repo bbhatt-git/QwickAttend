@@ -94,6 +94,17 @@ service cloud.firestore {
       allow create: if isOwner(teacherId) && request.resource.data.id == teacherId;
       allow update: if isExistingOwner(teacherId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(teacherId);
+
+      /**
+       * @description Secures holiday documents, ensuring they are managed only by the owning teacher.
+       * @path /teachers/{teacherId}/holidays/{holidayId}
+       */
+      match /holidays/{holidayId} {
+        allow get, list: if isOwner(teacherId);
+        allow create: if isOwner(teacherId) && hasValidTeacherIdOnCreate(teacherId);
+        allow update: if isExistingOwner(teacherId) && teacherIdIsImmutable();
+        allow delete: if isExistingOwner(teacherId);
+      }
     }
 
     /**

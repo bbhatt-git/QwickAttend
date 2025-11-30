@@ -120,6 +120,32 @@
         "id",
         "email"
       ]
+    },
+    "Holiday": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Holiday",
+        "type": "object",
+        "description": "Represents a school holiday.",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "Unique identifier for the Holiday entity."
+            },
+            "date": {
+                "type": "string",
+                "description": "The date of the holiday in 'yyyy-MM-dd' format.",
+                "format": "date"
+            },
+            "name": {
+                "type": "string",
+                "description": "The name of the holiday (e.g., Winter Break)."
+            },
+            "teacherId": {
+              "type": "string",
+              "description": "Reference to Teacher. (Relationship: Teacher 1:N Holiday)"
+            }
+        },
+        "required": ["id", "date", "name", "teacherId"]
     }
   },
   "auth": {
@@ -182,6 +208,26 @@
             {
               "name": "attendanceId",
               "description": "Unique identifier for the attendance record."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/teachers/{teacherId}/holidays/{holidayId}",
+        "definition": {
+          "entityName": "Holiday",
+          "schema": {
+            "$ref": "#/backend/entities/Holiday"
+          },
+          "description": "Stores holiday data for a teacher.",
+          "params": [
+            {
+              "name": "teacherId",
+              "description": "The Firebase Auth UID of the teacher."
+            },
+            {
+              "name": "holidayId",
+              "description": "Unique identifier for the holiday record."
             }
           ]
         }

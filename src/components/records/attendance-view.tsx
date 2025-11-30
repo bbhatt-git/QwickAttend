@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { format, isValid, startOfMonth, endOfMonth, addDays, subDays } from 'date-fns';
-import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { format, isValid, addDays, subDays } from 'date-fns';
+import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, deleteDoc, doc } from 'firebase/firestore';
-import type { Student, AttendanceRecord } from '@/lib/types';
+import type { Student, AttendanceRecord, Holiday } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { SECTIONS } from '@/lib/constants';
 
@@ -36,6 +36,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { Badge } from '../ui/badge';
 
 
 export default function AttendanceView() {
@@ -45,6 +46,7 @@ export default function AttendanceView() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
@@ -65,16 +67,21 @@ export default function AttendanceView() {
     if (!user || !date || !isValid(date)) return;
     setLoading(true);
     const dateStr = format(date, 'yyyy-MM-dd');
-    const fetchAttendance = async () => {
-      const q = query(
+    const fetchAttendanceAndHolidays = async () => {
+      const attendanceQuery = query(
         collection(firestore, `teachers/${user.uid}/attendance`),
         where('date', '==', dateStr)
       );
-      const querySnapshot = await getDocs(q);
-      setAttendance(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord)));
+      const attendanceSnapshot = await getDocs(attendanceQuery);
+      setAttendance(attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord)));
+
+      const holidaysQuery = query(collection(firestore, `teachers/${user.uid}/holidays`));
+      const holidaysSnapshot = await getDocs(holidaysQuery);
+      setHolidays(holidaysSnapshot.docs.map(doc => doc.data() as Holiday));
+      
       setLoading(false);
     };
-    fetchAttendance();
+    fetchAttendanceAndHolidays();
   }, [user, date, firestore, refetchTrigger]);
 
   const uniqueClasses = useMemo(() => {
@@ -92,9 +99,18 @@ export default function AttendanceView() {
     }
     return filteredStudents;
   }, [allStudents, sectionFilter, classFilter]);
+  
+  const todayHoliday = useMemo(() => {
+    if (!date) return null;
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return holidays.find(h => h.date === dateStr);
+  }, [holidays, date]);
 
 
   const { presentStudents, absentStudents, onLeaveStudents } = useMemo(() => {
+    if (todayHoliday) {
+      return { presentStudents: [], absentStudents: [], onLeaveStudents: [] };
+    }
     const present = attendance.filter(a => a.status === 'present');
     const onLeave = attendance.filter(a => a.status === 'on_leave');
     
@@ -115,7 +131,7 @@ export default function AttendanceView() {
     const absent = students.filter(s => !presentStudentIds.has(s.studentId) && !onLeaveStudentIds.has(s.studentId));
 
     return { presentStudents: presentWithName, absentStudents: absent, onLeaveStudents: onLeaveWithName };
-  }, [students, attendance]);
+  }, [students, attendance, todayHoliday]);
   
   const handleMarkAsLeave = async (student: Student) => {
     if (!user || !date) return;
@@ -175,6 +191,7 @@ export default function AttendanceView() {
   
       const attendanceSnapshot = await getDocs(attendanceQuery);
       const monthlyAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
+      const holidayDateMap = new Map(holidays.map(h => [h.date, h.name]));
   
       const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
   
@@ -204,6 +221,7 @@ export default function AttendanceView() {
           const bsDateToCheck = new NepaliDate(bsYear, bsMonth, parseInt(bsDay));
           const adDateToCheck = bsDateToCheck.toJsDate();
           adDateToCheck.setHours(0, 0, 0, 0);
+          const adDateStr = format(adDateToCheck, 'yyyy-MM-dd');
   
           if (adDateToCheck > todayAD) {
             rowData[bsDay] = ''; // Leave future dates blank
@@ -214,13 +232,16 @@ export default function AttendanceView() {
              rowData[bsDay] = "-"; // Not part of the month
              return;
           }
-  
+          
+          if(holidayDateMap.has(adDateStr)) {
+            rowData[bsDay] = `Holiday (${holidayDateMap.get(adDateStr)})`;
+            return;
+          }
+
           if (bsDateToCheck.getDay() === 6) { // 6 corresponds to Saturday in NepaliDate
             rowData[bsDay] = 'Saturday';
             return;
           }
-          
-          const adDateStr = format(adDateToCheck, 'yyyy-MM-dd');
           
           const attendanceRecord = monthlyAttendance.find(
             a => a.studentId === student.studentId && a.date === adDateStr
@@ -362,74 +383,84 @@ export default function AttendanceView() {
             </Button>
         </div>
       </div>
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'><UserCheck className="text-green-500" /> Present ({presentStudents.length})</CardTitle>
-            <CardDescription>Students marked as present.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-72">
-            {loading ? <Skeleton className="h-full w-full"/> : presentStudents.length > 0 ? (
-                <ul className="space-y-2">
-                    {presentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-green-100 dark:bg-green-900/50 flex justify-between items-center">{s.name} <span className="text-xs text-muted-foreground">{s.attendanceTime ? format(s.attendanceTime, 'p') : ''}</span></li>)}
-                </ul>
-            ) : <p className="text-sm text-muted-foreground text-center pt-10">No students were present.</p>}
-            </ScrollArea>
-          </CardContent>
+      {todayHoliday && (
+        <Card className="text-center p-8">
+            <CardHeader>
+                <CardTitle className='flex items-center justify-center gap-2 text-2xl'><CalendarOff className="h-8 w-8 text-primary"/>Holiday</CardTitle>
+                <CardDescription className="text-lg">{todayHoliday.name}</CardDescription>
+            </CardHeader>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'><UserMinus className="text-yellow-500"/> On Leave ({onLeaveStudents.length})</CardTitle>
-            <CardDescription>Students marked as on leave.</CardDescription>
-          </CardHeader>
-          <CardContent>
+      )}
+      {!todayHoliday && (
+        <div className="grid gap-6 md:grid-cols-3">
+            <Card>
+            <CardHeader>
+                <CardTitle className='flex items-center gap-2'><UserCheck className="text-green-500" /> Present ({presentStudents.length})</CardTitle>
+                <CardDescription>Students marked as present.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-72">
+                {loading ? <Skeleton className="h-full w-full"/> : presentStudents.length > 0 ? (
+                    <ul className="space-y-2">
+                        {presentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-green-100 dark:bg-green-900/50 flex justify-between items-center">{s.name} <span className="text-xs text-muted-foreground">{s.attendanceTime ? format(s.attendanceTime, 'p') : ''}</span></li>)}
+                    </ul>
+                ) : <p className="text-sm text-muted-foreground text-center pt-10">No students were present.</p>}
+                </ScrollArea>
+            </CardContent>
+            </Card>
+            <Card>
+            <CardHeader>
+                <CardTitle className='flex items-center gap-2'><UserMinus className="text-yellow-500"/> On Leave ({onLeaveStudents.length})</CardTitle>
+                <CardDescription>Students marked as on leave.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-72">
+                {loading ? <Skeleton className="h-full w-full"/> : onLeaveStudents.length > 0 ? (
+                    <ul className="space-y-2">
+                        {onLeaveStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-yellow-100 dark:bg-yellow-900/50 flex justify-between items-center">{s.name} <Button variant="ghost" size="sm" onClick={() => handleUndoLeave(s)}>Undo</Button></li>)}
+                    </ul>
+                ) : <p className="text-sm text-muted-foreground text-center pt-10">No students are on leave.</p>}
+                </ScrollArea>
+            </CardContent>
+            </Card>
+            <Card>
+            <CardHeader>
+                <CardTitle className='flex items-center gap-2'><UserX className="text-red-500" /> Absent ({absentStudents.length})</CardTitle>
+                <CardDescription>Students not marked present or on leave.</CardDescription>
+            </CardHeader>
+            <CardContent>
             <ScrollArea className="h-72">
-            {loading ? <Skeleton className="h-full w-full"/> : onLeaveStudents.length > 0 ? (
-                <ul className="space-y-2">
-                    {onLeaveStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-yellow-100 dark:bg-yellow-900/50 flex justify-between items-center">{s.name} <Button variant="ghost" size="sm" onClick={() => handleUndoLeave(s)}>Undo</Button></li>)}
-                </ul>
-            ) : <p className="text-sm text-muted-foreground text-center pt-10">No students are on leave.</p>}
-            </ScrollArea>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'><UserX className="text-red-500" /> Absent ({absentStudents.length})</CardTitle>
-            <CardDescription>Students not marked present or on leave.</CardDescription>
-          </CardHeader>
-          <CardContent>
-          <ScrollArea className="h-72">
-             {loading ? <Skeleton className="h-full w-full"/> : absentStudents.length > 0 ? (
-                <ul className="space-y-2">
-                    {absentStudents.map(s => (
-                      <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50 flex justify-between items-center">
-                        <div className="flex-1">
-                          {s.name}
-                          {s.contact && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                              <Phone className="h-3 w-3" />
-                              <a href={`tel:${s.contact}`} className="hover:underline">{s.contact}</a>
+                {loading ? <Skeleton className="h-full w-full"/> : absentStudents.length > 0 ? (
+                    <ul className="space-y-2">
+                        {absentStudents.map(s => (
+                        <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50 flex justify-between items-center">
+                            <div className="flex-1">
+                            {s.name}
+                            {s.contact && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                <Phone className="h-3 w-3" />
+                                <a href={`tel:${s.contact}`} className="hover:underline">{s.contact}</a>
+                                </div>
+                            )}
                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                           {s.contact && (
-                             <Button variant="secondary" size="sm" onClick={() => handleNotifyParent(s)}>
-                               <MessageSquare className="h-3 w-3" />
-                               <span className="sr-only">Notify Parent</span>
-                            </Button>
-                           )}
-                           <Button variant="outline" size="sm" onClick={() => handleMarkAsLeave(s)}>Mark Leave</Button>
-                        </div>
-                      </li>
-                    ))}
-                </ul>
-            ) : <p className="text-sm text-muted-foreground text-center pt-10">All students are accounted for!</p>}
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      </div>
+                            <div className="flex items-center gap-1">
+                            {s.contact && (
+                                <Button variant="secondary" size="sm" onClick={() => handleNotifyParent(s)}>
+                                <MessageSquare className="h-3 w-3" />
+                                <span className="sr-only">Notify Parent</span>
+                                </Button>
+                            )}
+                            <Button variant="outline" size="sm" onClick={() => handleMarkAsLeave(s)}>Mark Leave</Button>
+                            </div>
+                        </li>
+                        ))}
+                    </ul>
+                ) : <p className="text-sm text-muted-foreground text-center pt-10">All students are accounted for!</p>}
+                </ScrollArea>
+            </CardContent>
+            </Card>
+        </div>
+      )}
     </div>
   );
 }

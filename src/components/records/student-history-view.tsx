@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import type { Student, AttendanceRecord } from '@/lib/types';
+import type { Student, AttendanceRecord, Holiday } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight, CalendarOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, parse } from 'date-fns';
@@ -35,7 +35,8 @@ type MonthlyRecord = {
   date: string; // BS Date string 'YYYY-MM-DD'
   bsDay: string;
   adDate: Date;
-  status: 'present' | 'on_leave' | 'absent' | 'saturday' | 'future';
+  status: 'present' | 'on_leave' | 'absent' | 'saturday' | 'holiday';
+  holidayName?: string;
 };
 
 export default function StudentHistoryView() {
@@ -46,6 +47,7 @@ export default function StudentHistoryView() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [studentHistory, setStudentHistory] = useState<AttendanceRecord[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [displayDate, setDisplayDate] = useState(new Date());
 
 
@@ -57,7 +59,7 @@ export default function StudentHistoryView() {
   const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
   
   useEffect(() => {
-    const fetchHistory = async () => {
+    const fetchHistoryAndHolidays = async () => {
         if (!selectedStudent || !user) return;
         
         setIsLoadingHistory(true);
@@ -66,13 +68,18 @@ export default function StudentHistoryView() {
             collection(firestore, `teachers/${user.uid}/attendance`),
             where('studentId', '==', selectedStudent.studentId),
         );
-
-        const snapshot = await getDocs(attendanceQuery);
-        const history = snapshot.docs.map(doc => doc.data() as AttendanceRecord);
+        const attendanceSnapshot = await getDocs(attendanceQuery);
+        const history = attendanceSnapshot.docs.map(doc => doc.data() as AttendanceRecord);
         setStudentHistory(history);
+        
+        const holidaysQuery = query(collection(firestore, `teachers/${user.uid}/holidays`));
+        const holidaysSnapshot = await getDocs(holidaysQuery);
+        const holidayData = holidaysSnapshot.docs.map(doc => doc.data() as Holiday);
+        setHolidays(holidayData);
+        
         setIsLoadingHistory(false);
     };
-    fetchHistory();
+    fetchHistoryAndHolidays();
   }, [selectedStudent, user, firestore]);
 
 
@@ -92,6 +99,8 @@ export default function StudentHistoryView() {
     const bsYear = bsDate.getYear();
     const bsMonth = bsDate.getMonth();
     const daysInMonth = new NepaliDate(bsYear, bsMonth + 1, 0).getDate();
+    
+    const holidayDateSet = new Map(holidays.map(h => [h.date, h.name]));
 
     const records: MonthlyRecord[] = [];
 
@@ -101,11 +110,19 @@ export default function StudentHistoryView() {
         adDate.setHours(0, 0, 0, 0);
 
         if (adDate > today) {
-             records.push({
+            continue; // Skip future dates
+        }
+        
+        const adDateStr = format(adDate, 'yyyy-MM-dd');
+        
+        const holidayName = holidayDateSet.get(adDateStr);
+        if (holidayName) {
+            records.push({
                 date: currentBsDate.format('YYYY-MM-DD'),
                 bsDay: currentBsDate.format('DD'),
                 adDate: adDate,
-                status: 'future',
+                status: 'holiday',
+                holidayName: holidayName,
             });
             continue;
         }
@@ -120,7 +137,6 @@ export default function StudentHistoryView() {
             continue;
         }
 
-        const adDateStr = format(adDate, 'yyyy-MM-dd');
         const firestoreRecord = studentHistory.find(rec => rec.date === adDateStr);
 
         records.push({
@@ -132,7 +148,7 @@ export default function StudentHistoryView() {
     }
 
     return records.reverse(); // Show most recent first
-  }, [studentHistory, displayDate, selectedStudent]);
+  }, [studentHistory, holidays, displayDate, selectedStudent]);
 
   const stats = useMemo(() => {
     const present = monthlyRecords.filter(r => r.status === 'present').length;
@@ -147,7 +163,7 @@ export default function StudentHistoryView() {
     on_leave: 'secondary',
     absent: 'destructive',
     saturday: 'outline',
-    future: 'outline'
+    holiday: 'outline'
   } as const;
   
   const statusText = {
@@ -155,7 +171,7 @@ export default function StudentHistoryView() {
     on_leave: 'On Leave',
     absent: 'Absent',
     saturday: 'Saturday',
-    future: 'Future Date'
+    holiday: 'Holiday'
   };
   
   const handleMonthChange = (direction: 'prev' | 'next') => {
@@ -296,7 +312,12 @@ export default function StudentHistoryView() {
                             <ul className="space-y-2">
                                 {monthlyRecords.map(record => (
                                     <li key={record.date} className="flex justify-between items-center p-2 rounded-md bg-muted">
-                                        <span className="font-medium">{new NepaliDate(record.adDate).format('dddd, DD MMMM, YYYY')}</span>
+                                        <div className='flex flex-col'>
+                                            <span className="font-medium">{new NepaliDate(record.adDate).format('dddd, DD MMMM, YYYY')}</span>
+                                            {record.status === 'holiday' && record.holidayName && (
+                                                <span className="text-xs text-muted-foreground flex items-center gap-1"><CalendarOff className="h-3 w-3" />{record.holidayName}</span>
+                                            )}
+                                        </div>
                                         <Badge variant={badgeVariant[record.status]}>{statusText[record.status]}</Badge>
                                     </li>
                                 ))}
