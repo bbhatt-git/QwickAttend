@@ -36,15 +36,19 @@ export function NepaliCalendar({ value, onSelect }: NepaliCalendarProps) {
   const renderDays = () => {
     const year = viewDate.getYear();
     const month = viewDate.getMonth();
-    const monthData = new NepaliDate(year, month, 1).getMonthData();
+    
+    // Correctly get month data
+    const firstDayOfMonth = new NepaliDate(year, month, 1);
+    const startDayOfWeek = firstDayOfMonth.getDay();
+    const daysInMonth = new NepaliDate(year, month + 1, 0).getDate();
 
     const days = [];
     // Add empty cells for the first day's offset
-    for (let i = 0; i < monthData.startDayOfWeek; i++) {
+    for (let i = 0; i < startDayOfWeek; i++) {
       days.push(<div key={`empty-start-${i}`} className="h-9 w-9" />);
     }
 
-    for (let i = 1; i <= monthData.daysInMonth; i++) {
+    for (let i = 1; i <= daysInMonth; i++) {
       const currentDate = new NepaliDate(year, month, i);
       const isSelected = value && value.getYear() === year && value.getMonth() === month && value.getDate() === i;
       const isToday = today.getYear() === year && today.getMonth() === month && today.getDate() === i;
