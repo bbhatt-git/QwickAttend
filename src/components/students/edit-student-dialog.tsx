@@ -47,7 +47,7 @@ const studentFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   class: z.string().min(1, 'Class is required.'),
   section: z.enum(SECTIONS, { required_error: 'Please select a section.' }),
-  contact: z.string().optional(),
+  contact: z.string().min(10, 'Please enter a valid contact number.').optional().or(z.literal('')),
 });
 
 type EditStudentDialogProps = {
@@ -192,9 +192,9 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
               name="contact"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contact Number (Optional)</FormLabel>
+                  <FormLabel>Parent's Contact Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="Parent's phone number" {...field} disabled={isSubmitting} />
+                    <Input placeholder="e.g. 98XXXXXXXX" {...field} disabled={isSubmitting} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

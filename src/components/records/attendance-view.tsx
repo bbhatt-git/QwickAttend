@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { format, isValid, startOfMonth, endOfMonth, addDays, subDays } from 'date-fns';
-import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
@@ -152,13 +152,14 @@ export default function AttendanceView() {
   const handleMonthlyExport = async () => {
     if (!date || !user) return;
     setIsDownloading(true);
-  
+    const todayAD = new Date(); // Today's Gregorian date
+    todayAD.setHours(0, 0, 0, 0); // Normalize to the start of the day
+
     try {
         const selectedBSDate = new NepaliDate(date);
         const bsMonth = selectedBSDate.getMonth();
         const bsYear = selectedBSDate.getYear();
         const bsDaysInMonth = new NepaliDate(bsYear, bsMonth + 1, 0).getDate();
-        const todayAD = new Date();
 
         // Find the AD date range for the selected BS month
         const firstDayOfBSMonth = new NepaliDate(bsYear, bsMonth, 1);
@@ -202,6 +203,7 @@ export default function AttendanceView() {
         dateColumns.forEach(bsDay => {
           const bsDateToCheck = new NepaliDate(bsYear, bsMonth, parseInt(bsDay));
           const adDateToCheck = bsDateToCheck.toJsDate();
+          adDateToCheck.setHours(0, 0, 0, 0);
   
           if (adDateToCheck > todayAD) {
             rowData[bsDay] = ''; // Leave future dates blank
@@ -275,9 +277,24 @@ export default function AttendanceView() {
 
   const bsDate = date ? new NepaliDate(date).format('DD, MMMM YYYY') : '';
 
+  const handleNotifyParent = (student: Student) => {
+    if (!student.contact) {
+      toast({
+        variant: 'destructive',
+        title: 'No Contact Info',
+        description: `No contact number is saved for ${student.name}.`,
+      });
+      return;
+    }
+
+    const message = `Dear Parent, this is to inform you that your child, ${student.name}, was absent from school today, ${date ? format(date, 'PPP') : ''}. Thank you.`;
+    const smsUrl = `sms:${student.contact}?&body=${encodeURIComponent(message)}`;
+    window.location.href = smsUrl;
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center">
             <Button variant="outline" size="icon" onClick={() => handleDateChange('prev')} className="h-10 w-10 rounded-r-none">
@@ -288,7 +305,7 @@ export default function AttendanceView() {
                 <Button
                   variant={"outline"}
                   className={cn(
-                    "w-[240px] justify-start text-left font-normal rounded-none",
+                    "w-[200px] justify-start text-left font-normal rounded-none",
                     !date && "text-muted-foreground"
                   )}
                 >
@@ -309,12 +326,12 @@ export default function AttendanceView() {
             <Button variant="outline" size="icon" onClick={() => handleDateChange('next')} disabled={isToday} className="h-10 w-10 rounded-l-none">
               <ChevronRight className="h-4 w-4" />
             </Button>
+            </div>
             {date && (
-                <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md ml-2">
+                <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
                 <span className="font-semibold">BS:</span> {bsDate}
                 </div>
             )}
-          </div>
           <Select value={classFilter} onValueChange={setClassFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by class" />
@@ -387,7 +404,7 @@ export default function AttendanceView() {
                 <ul className="space-y-2">
                     {absentStudents.map(s => (
                       <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50 flex justify-between items-center">
-                        <div>
+                        <div className="flex-1">
                           {s.name}
                           {s.contact && (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
@@ -396,7 +413,15 @@ export default function AttendanceView() {
                             </div>
                           )}
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => handleMarkAsLeave(s)}>Mark Leave</Button>
+                        <div className="flex items-center gap-1">
+                           {s.contact && (
+                             <Button variant="secondary" size="sm" onClick={() => handleNotifyParent(s)}>
+                               <MessageSquare className="h-3 w-3" />
+                               <span className="sr-only">Notify Parent</span>
+                            </Button>
+                           )}
+                           <Button variant="outline" size="sm" onClick={() => handleMarkAsLeave(s)}>Mark Leave</Button>
+                        </div>
                       </li>
                     ))}
                 </ul>
@@ -408,5 +433,3 @@ export default function AttendanceView() {
     </div>
   );
 }
-
-    
