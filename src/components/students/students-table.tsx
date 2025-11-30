@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -33,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentActions } from '@/components/students/student-actions';
+import { Button } from '../ui/button';
 
 export function StudentsTable() {
   const { user } = useUser();
@@ -100,25 +100,23 @@ export function StudentsTable() {
 
   return (
     <Card>
-      <CardHeader className="sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <CardTitle>Your Students</CardTitle>
-            <CardDescription>
-            A list of all students in your classes.
-            </CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle>Students</CardTitle>
+        <CardDescription>
+        Manage your students and their QR codes.
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pb-4 flex-wrap">
+         <div className="flex items-center pb-4 gap-2 flex-wrap">
           <Input
             placeholder="Filter by name or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full sm:max-w-xs"
           />
-          <div className="flex w-full sm:w-auto gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
              <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Filter by class" />
               </SelectTrigger>
               <SelectContent>
@@ -129,7 +127,7 @@ export function StudentsTable() {
               </SelectContent>
             </Select>
              <Select value={sectionFilter} onValueChange={setSectionFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Filter by section" />
               </SelectTrigger>
               <SelectContent>
@@ -139,6 +137,7 @@ export function StudentsTable() {
                 ))}
               </SelectContent>
             </Select>
+            </div>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Sort by" />
@@ -148,7 +147,6 @@ export function StudentsTable() {
                 <SelectItem value="studentId">Sort by Student ID</SelectItem>
               </SelectContent>
             </Select>
-          </div>
         </div>
         <Table>
           <TableHeader>

@@ -6,90 +6,68 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetTitle,
-  SheetDescription,
-  SheetHeader,
-  SheetClose
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import {
-  PanelLeft,
-  LayoutDashboard,
-  Users,
-  QrCode,
-  CalendarClock,
-  School,
-  AppWindow,
-  Nfc,
-  CalendarOff
+  Menu,
+  School
 } from 'lucide-react';
 import { UserNav } from './user-nav';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { navItems } from '@/lib/nav-items';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
-const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/dashboard/students', icon: Users, label: 'Students' },
-  { href: '/dashboard/scan', icon: QrCode, label: 'Scan QR' },
-  { href: '/dashboard/nfc', icon: Nfc, label: 'Scan NFC' },
-  { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
-  { href: '/dashboard/holidays', icon: CalendarOff, label: 'Holidays' },
-];
 
 export default function Header() {
-  const pathname = usePathname();
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-
+    const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetTrigger asChild>
-          <Button size="icon" variant="outline" className="sm:hidden">
-            <PanelLeft className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
-          <SheetHeader>
-            <SheetTitle>Navigation Menu</SheetTitle>
-            <SheetDescription className="sr-only">Main navigation links for the dashboard.</SheetDescription>
-          </SheetHeader>
-          <nav className="grid gap-6 text-lg font-medium mt-4">
-            <Link
-              href="/dashboard"
-              className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-               onClick={() => setIsSheetOpen(false)}
-            >
-              <School className="h-5 w-5 transition-all group-hover:scale-110" />
-              <span className="sr-only">QwickAttend</span>
-            </Link>
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
+    <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+       <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 md:hidden"
+              >
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle navigation menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="flex flex-col">
+              <nav className="grid gap-2 text-lg font-medium">
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-4 px-2.5 ${
-                    isActive
-                      ? 'text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                  onClick={() => setIsSheetOpen(false)}
+                  href="#"
+                  className="flex items-center gap-2 text-lg font-semibold"
                 >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
+                  <School className="h-6 w-6" />
+                  <span className="sr-only">QwickAttend</span>
                 </Link>
-              );
-            })}
-          </nav>
-        </SheetContent>
-      </Sheet>
-      <div className="relative ml-auto flex items-center gap-2 md:grow-0">
-         <ThemeToggle />
-         <UserNav />
+                {navItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                        <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                            "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
+                            isActive && "bg-muted text-foreground"
+                        )}
+                        >
+                            <item.icon className="h-5 w-5" />
+                            {item.label}
+                        </Link>
+                    )
+                })}
+              </nav>
+            </SheetContent>
+          </Sheet>
+      <div className="w-full flex-1">
+        {/* Can add breadcrumbs or search here if needed */}
       </div>
+      <ThemeToggle />
+      <UserNav />
     </header>
   );
 }

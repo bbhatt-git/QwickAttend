@@ -4,68 +4,44 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-  LayoutDashboard,
-  Users,
-  QrCode,
-  CalendarClock,
-  School,
-  AppWindow,
-  Nfc,
-  CalendarOff,
+  School
 } from 'lucide-react';
-
-const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/dashboard/students', icon: Users, label: 'Students' },
-  { href: '/dashboard/scan', icon: QrCode, label: 'Scan QR' },
-  { href: '/dashboard/nfc', icon: Nfc, label: 'Scan NFC' },
-  { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
-  { href: '/dashboard/holidays', icon: CalendarOff, label: 'Holidays' },
-];
+import { navItems } from '@/lib/nav-items';
+import { cn } from '@/lib/utils';
 
 export default function MainSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
-      <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-        <Link
-          href="/dashboard"
-          className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
-        >
-          <School className="h-4 w-4 transition-all group-hover:scale-110" />
-          <span className="sr-only">QwickAttend</span>
-        </Link>
-        <TooltipProvider>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Tooltip key={item.href}>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={item.href}
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8 ${
-                      isActive
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span className="sr-only">{item.label}</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </TooltipProvider>
-      </nav>
-    </aside>
+    <div className="hidden border-r bg-muted/40 md:block">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+              <School className="h-6 w-6" />
+              <span>QwickAttend</span>
+            </Link>
+          </div>
+          <div className="flex-1">
+            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                            isActive && "bg-muted text-primary"
+                        )}
+                        >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                    </Link>
+                )
+              })}
+            </nav>
+          </div>
+        </div>
+      </div>
   );
 }

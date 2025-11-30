@@ -21,23 +21,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isUserLoading || !user) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-muted/40">
+    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <MainSidebar />
-      <div className="flex flex-1 flex-col sm:gap-4 sm:py-4 sm:pl-14">
+      <div className="flex flex-col">
         <Header />
-        <main className="flex-1 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <main className="flex flex-1 flex-col gap-4 bg-muted/40 p-4 lg:gap-6 lg:p-6">
           <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
             {children}
           </Suspense>
         </main>
-        <Footer />
       </div>
     </div>
   );
