@@ -15,12 +15,14 @@ import {
   CalendarClock,
   School,
   AppWindow,
+  Nfc,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/students', icon: Users, label: 'Students' },
   { href: '/dashboard/scan', icon: QrCode, label: 'Scan QR' },
+  { href: '/dashboard/nfc', icon: Nfc, label: 'Scan NFC' },
   { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
   { href: '/dashboard/generate-qr', icon: AppWindow, label: 'Generate QR' },
 ];
