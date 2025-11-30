@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SECTIONS } from '@/lib/constants';
 
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { NepaliCalendar } from '@/components/ui/nepali-calendar';
 import {
   Popover,
   PopoverContent,
@@ -43,7 +43,10 @@ export default function AttendanceView() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  
+  const [bsDate, setBsDate] = useState(new NepaliDate());
+  const adDate = useMemo(() => bsDate.toJsDate(), [bsDate]);
+
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -64,9 +67,9 @@ export default function AttendanceView() {
   }, [user, firestore]);
   
   useEffect(() => {
-    if (!user || !date || !isValid(date)) return;
+    if (!user || !adDate || !isValid(adDate)) return;
     setLoading(true);
-    const dateStr = format(date, 'yyyy-MM-dd');
+    const dateStr = format(adDate, 'yyyy-MM-dd');
     const fetchAttendanceAndHolidays = async () => {
       const attendanceQuery = query(
         collection(firestore, `teachers/${user.uid}/attendance`),
@@ -82,7 +85,7 @@ export default function AttendanceView() {
       setLoading(false);
     };
     fetchAttendanceAndHolidays();
-  }, [user, date, firestore, refetchTrigger]);
+  }, [user, adDate, firestore, refetchTrigger]);
 
   const uniqueClasses = useMemo(() => {
     const classes = new Set(allStudents.map(s => s.class));
@@ -101,10 +104,10 @@ export default function AttendanceView() {
   }, [allStudents, sectionFilter, classFilter]);
   
   const todayHoliday = useMemo(() => {
-    if (!date) return null;
-    const dateStr = format(date, 'yyyy-MM-dd');
+    if (!adDate) return null;
+    const dateStr = format(adDate, 'yyyy-MM-dd');
     return holidays.find(h => h.date === dateStr);
-  }, [holidays, date]);
+  }, [holidays, adDate]);
 
 
   const { presentStudents, absentStudents, onLeaveStudents } = useMemo(() => {
@@ -121,7 +124,8 @@ export default function AttendanceView() {
         .filter(s => presentStudentIds.has(s.studentId))
         .map(s => {
             const att = present.find(a => a.studentId === s.studentId);
-            return {...s, attendanceTime: att?.timestamp.toDate()};
+            const attendanceTimestamp = att?.timestamp as unknown as Timestamp;
+            return {...s, attendanceTime: attendanceTimestamp?.toDate()};
         });
 
     const onLeaveWithName = students
@@ -134,13 +138,13 @@ export default function AttendanceView() {
   }, [students, attendance, todayHoliday]);
   
   const handleMarkAsLeave = async (student: Student) => {
-    if (!user || !date) return;
+    if (!user || !adDate) return;
     try {
         const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
         await addDoc(attendanceCollection, {
             studentId: student.studentId,
             teacherId: user.uid,
-            date: format(date, 'yyyy-MM-dd'),
+            date: format(adDate, 'yyyy-MM-dd'),
             timestamp: Timestamp.now(),
             status: 'on_leave'
         });
@@ -166,15 +170,14 @@ export default function AttendanceView() {
   }
 
   const handleMonthlyExport = async () => {
-    if (!date || !user) return;
+    if (!bsDate || !user) return;
     setIsDownloading(true);
     const todayAD = new Date(); // Today's Gregorian date
     todayAD.setHours(0, 0, 0, 0); // Normalize to the start of the day
 
     try {
-        const selectedBSDate = new NepaliDate(date);
-        const bsMonth = selectedBSDate.getMonth();
-        const bsYear = selectedBSDate.getYear();
+        const bsMonth = bsDate.getMonth();
+        const bsYear = bsDate.getYear();
         const bsDaysInMonth = new NepaliDate(bsYear, bsMonth + 1, 0).getDate();
 
         // Find the AD date range for the selected BS month
@@ -288,15 +291,19 @@ export default function AttendanceView() {
   };
 
   const handleDateChange = (direction: 'prev' | 'next') => {
-    if (!date) return;
-    const newDate = direction === 'prev' ? subDays(date, 1) : addDays(date, 1);
-    if (newDate <= new Date()) {
-      setDate(newDate);
+    const newDate = new NepaliDate(bsDate);
+    if (direction === 'prev') {
+        newDate.setDate(newDate.getDate() - 1);
+    } else {
+        newDate.setDate(newDate.getDate() + 1);
+    }
+
+    if (newDate.toJsDate() <= new Date()) {
+      setBsDate(newDate);
     }
   };
-  const isToday = date ? format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') : false;
 
-  const bsDate = date ? new NepaliDate(date) : new NepaliDate();
+  const isToday = bsDate.toJsDate().setHours(0,0,0,0) === new Date().setHours(0,0,0,0);
 
   const handleNotifyParent = (student: Student) => {
     if (!student.contact) {
@@ -308,7 +315,7 @@ export default function AttendanceView() {
       return;
     }
 
-    const message = `Dear Parent, this is to inform you that your child, ${student.name}, was absent from school today, ${date ? format(date, 'PPP') : ''}. Thank you.`;
+    const message = `Dear Parent, this is to inform you that your child, ${student.name}, was absent from school today, ${bsDate ? bsDate.format('YYYY-MM-DD') : ''}. Thank you.`;
     const smsUrl = `sms:${student.contact}?&body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
   };
@@ -327,20 +334,17 @@ export default function AttendanceView() {
                   variant={"outline"}
                   className={cn(
                     "w-[280px] justify-start text-left font-normal rounded-none",
-                    !date && "text-muted-foreground"
+                    !bsDate && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? `BS: ${bsDate.format('DD, MMMM YYYY')}` : <span>Pick a date</span>}
+                  {bsDate ? `BS: ${bsDate.format('DD, MMMM YYYY')}` : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                 <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                  disabled={(d) => d > new Date() || d < new Date("2000-01-01")}
+                 <NepaliCalendar
+                  value={bsDate}
+                  onSelect={setBsDate}
                 />
               </PopoverContent>
             </Popover>
