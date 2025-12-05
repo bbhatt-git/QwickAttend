@@ -1,3 +1,4 @@
+
 'use client';
 
 import { UsbScanner } from '@/components/scan/usb-scanner';
@@ -18,7 +19,7 @@ export default function UsbScanPage() {
         <Usb className="h-4 w-4" />
         <AlertTitle>USB Scanner Required</AlertTitle>
         <AlertDescription>
-          This feature requires a USB-connected scanner configured in "Keyboard Emulation" or "Keyboard Wedge" mode. The input field below will be auto-focused.
+          This feature requires a USB-connected scanner configured in "Keyboard Emulation" or "Keyboard Wedge" mode. Click on the area below to begin scanning.
         </AlertDescription>
       </Alert>
       

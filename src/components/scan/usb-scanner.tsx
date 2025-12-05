@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -156,33 +157,33 @@ export function UsbScanner() {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-lg rounded-xl overflow-hidden bg-muted">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Usb /> USB Scanner Input</CardTitle>
-            <CardDescription>Scan a student's ID. The system will automatically process it.</CardDescription>
-        </CardHeader>
-      <CardContent className="p-6 relative flex flex-col items-center justify-center text-center">
+    <Card className="w-full max-w-md shadow-lg rounded-xl overflow-hidden relative">
+      <CardContent className="p-0 flex flex-col items-center justify-center text-center aspect-square" onClick={() => inputRef.current?.focus()}>
         
         {isDataLoading ? (
-            <div className="flex flex-col items-center justify-center h-40">
+            <div className="flex flex-col items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
                 <p className="text-lg font-semibold text-foreground">Loading Student Data...</p>
                 <p className="text-sm text-muted-foreground">Please wait.</p>
             </div>
         ) : (
-            <form onSubmit={handleSubmit} className="w-full">
-                <Input
-                    ref={inputRef}
-                    type="text"
-                    placeholder="Waiting for scan..."
-                    value={scannedId}
-                    onChange={(e) => setScannedId(e.target.value)}
-                    className="text-center text-lg h-14"
-                    disabled={!!lastResult}
-                    autoFocus
-                />
-            </form>
+            <div className='flex flex-col items-center justify-center'>
+                <Usb className="h-20 w-20 text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-bold">Waiting for Scan</h2>
+                <p className="text-muted-foreground mt-2 px-4">Click here and scan a student ID using your USB reader.</p>
+            </div>
         )}
+
+        <form onSubmit={handleSubmit} className="absolute -z-10 opacity-0">
+          <Input
+            ref={inputRef}
+            type="text"
+            value={scannedId}
+            onChange={(e) => setScannedId(e.target.value)}
+            disabled={!!lastResult}
+            autoFocus
+          />
+        </form>
         
         {lastResult && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/50 z-20">
