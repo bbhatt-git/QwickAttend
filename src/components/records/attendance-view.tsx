@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { format, isValid, addDays, subDays } from 'date-fns';
-import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { format, isValid } from 'date-fns';
+import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff, FileText } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
@@ -14,29 +14,25 @@ import { SECTIONS } from '@/lib/constants';
 
 import { Button } from '@/components/ui/button';
 import { NepaliCalendar } from '@/components/ui/nepali-calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-  } from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Badge } from '../ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 export default function AttendanceView() {
@@ -55,6 +51,12 @@ export default function AttendanceView() {
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [sectionFilter, setSectionFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
+
+  // State for the leave reason dialog
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [studentForLeave, setStudentForLeave] = useState<Student | null>(null);
+  const [leaveReason, setLeaveReason] = useState('');
+
 
   useEffect(() => {
     if (!user) return;
@@ -130,30 +132,44 @@ export default function AttendanceView() {
 
     const onLeaveWithName = students
         .filter(s => onLeaveStudentIds.has(s.studentId))
-        .map(s => ({ ...s, attendanceId: onLeave.find(a => a.studentId === s.studentId)!.id }));
+        .map(s => {
+            const att = onLeave.find(a => a.studentId === s.studentId);
+            return { ...s, attendanceId: att!.id, leaveReason: att!.leaveReason };
+        });
+
 
     const absent = students.filter(s => !presentStudentIds.has(s.studentId) && !onLeaveStudentIds.has(s.studentId));
 
     return { presentStudents: presentWithName, absentStudents: absent, onLeaveStudents: onLeaveWithName };
   }, [students, attendance, todayHoliday]);
   
-  const handleMarkAsLeave = async (student: Student) => {
-    if (!user || !adDate) return;
+  const handleMarkAsLeave = async () => {
+    if (!user || !adDate || !studentForLeave) return;
     try {
         const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
         await addDoc(attendanceCollection, {
-            studentId: student.studentId,
+            studentId: studentForLeave.studentId,
             teacherId: user.uid,
             date: format(adDate, 'yyyy-MM-dd'),
             timestamp: Timestamp.now(),
-            status: 'on_leave'
+            status: 'on_leave',
+            leaveReason: leaveReason || 'Not specified'
         });
-        toast({ title: 'Success', description: `${student.name} marked as on leave.` });
+        toast({ title: 'Success', description: `${studentForLeave.name} marked as on leave.` });
         setRefetchTrigger(c => c + 1);
     } catch (error) {
         console.error("Error marking as leave:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not mark as leave. Please try again.' });
+    } finally {
+        setLeaveDialogOpen(false);
+        setStudentForLeave(null);
+        setLeaveReason('');
     }
+  }
+
+  const openLeaveDialog = (student: Student) => {
+    setStudentForLeave(student);
+    setLeaveDialogOpen(true);
   }
 
   const handleUndoLeave = async (student: { id: string, attendanceId: string, name: string }) => {
@@ -251,7 +267,7 @@ export default function AttendanceView() {
           );
   
           if (attendanceRecord) {
-            rowData[bsDay] = attendanceRecord.status === 'present' ? 'Present' : 'On leave';
+            rowData[bsDay] = attendanceRecord.status === 'present' ? 'Present' : `On leave (${attendanceRecord.leaveReason || 'N/A'})`;
           } else {
             rowData[bsDay] = 'Absent';
           }
@@ -416,7 +432,15 @@ export default function AttendanceView() {
                 <ScrollArea className="h-72">
                 {loading ? <Skeleton className="h-full w-full"/> : onLeaveStudents.length > 0 ? (
                     <ul className="space-y-2">
-                        {onLeaveStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-yellow-100 dark:bg-yellow-900/50 flex justify-between items-center">{s.name} <Button variant="ghost" size="sm" onClick={() => handleUndoLeave(s)}>Undo</Button></li>)}
+                        {onLeaveStudents.map(s => (
+                            <li key={s.id} className="text-sm p-2 rounded-md bg-yellow-100 dark:bg-yellow-900/50 flex justify-between items-center">
+                                <div>
+                                    <p>{s.name}</p>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><FileText className="h-3 w-3" />{s.leaveReason || 'Not specified'}</p>
+                                </div>
+                                <Button variant="ghost" size="sm" onClick={() => handleUndoLeave(s)}>Undo</Button>
+                            </li>
+                        ))}
                     </ul>
                 ) : <p className="text-sm text-muted-foreground text-center pt-10">No students are on leave.</p>}
                 </ScrollArea>
@@ -449,7 +473,7 @@ export default function AttendanceView() {
                                 <span className="sr-only">Notify Parent</span>
                                 </Button>
                             )}
-                            <Button variant="outline" size="sm" onClick={() => handleMarkAsLeave(s)}>Mark Leave</Button>
+                            <Button variant="outline" size="sm" onClick={() => openLeaveDialog(s)}>Mark Leave</Button>
                             </div>
                         </li>
                         ))}
@@ -460,6 +484,37 @@ export default function AttendanceView() {
             </Card>
         </div>
       )}
+      <AlertDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Mark {studentForLeave?.name} as On Leave</AlertDialogTitle>
+            <AlertDialogDescription>
+                Please provide a brief reason for the student's absence. This will be saved in the record.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="leave-reason" className="text-right">
+                    Reason
+                    </Label>
+                    <Input
+                    id="leave-reason"
+                    value={leaveReason}
+                    onChange={(e) => setLeaveReason(e.target.value)}
+                    className="col-span-3"
+                    placeholder="e.g., Sick, Family event"
+                    />
+                </div>
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => {
+                    setStudentForLeave(null);
+                    setLeaveReason('');
+                }}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleMarkAsLeave}>Confirm Leave</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+     </AlertDialog>
     </div>
   );
 }

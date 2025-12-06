@@ -20,6 +20,7 @@ export type AttendanceRecord = {
   teacherId: string;
   status: 'present' | 'on_leave';
   studentName?: string; // Optional: for display purposes
+  leaveReason?: string; // New field for absence reason
 };
 
 export type Holiday = {

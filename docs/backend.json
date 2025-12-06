@@ -85,6 +85,10 @@
             "present",
             "on_leave"
           ]
+        },
+        "leaveReason": {
+          "type": "string",
+          "description": "The reason for the student being on leave, if applicable."
         }
       },
       "required": [

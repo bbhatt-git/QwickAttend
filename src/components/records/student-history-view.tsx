@@ -22,10 +22,10 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight, CalendarOff } from 'lucide-react';
+import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight, CalendarOff, FileText } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import NepaliDate from 'nepali-date-converter';
@@ -37,6 +37,7 @@ type MonthlyRecord = {
   adDate: Date;
   status: 'present' | 'on_leave' | 'absent' | 'saturday' | 'holiday';
   holidayName?: string;
+  leaveReason?: string;
 };
 
 export default function StudentHistoryView() {
@@ -144,6 +145,7 @@ export default function StudentHistoryView() {
             bsDay: currentBsDate.format('DD'),
             adDate: adDate,
             status: firestoreRecord ? firestoreRecord.status : 'absent',
+            leaveReason: firestoreRecord?.status === 'on_leave' ? firestoreRecord.leaveReason : undefined,
         });
     }
 
@@ -317,6 +319,9 @@ export default function StudentHistoryView() {
                                             {record.status === 'holiday' && record.holidayName && (
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1"><CalendarOff className="h-3 w-3" />{record.holidayName}</span>
                                             )}
+                                            {record.status === 'on_leave' && record.leaveReason && (
+                                                <span className="text-xs text-muted-foreground flex items-center gap-1"><FileText className="h-3 w-3" />{record.leaveReason}</span>
+                                            )}
                                         </div>
                                         <Badge variant={badgeVariant[record.status]}>{statusText[record.status]}</Badge>
                                     </li>
@@ -336,4 +341,3 @@ export default function StudentHistoryView() {
     </Card>
   );
 }
-
