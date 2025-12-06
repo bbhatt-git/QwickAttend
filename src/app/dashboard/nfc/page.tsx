@@ -27,9 +27,9 @@ export default function NfcPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Scan NFC Tag</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Scan NFC (In-built)</h1>
         <p className="text-muted-foreground">
-          Tap a student's NFC tag on your device's reader to mark them as present.
+          Use your device's built-in NFC reader to mark a student as present.
         </p>
       </div>
       
@@ -41,7 +41,7 @@ export default function NfcPage() {
             {isNfcSupported === false && "NFC Not Supported"}
         </AlertTitle>
         <AlertDescription>
-           {isNfcSupported === true && "This feature requires granting permission to use your device's NFC reader."}
+           {isNfcSupported === true && "This feature requires granting permission to use your device's built-in NFC reader."}
            {isNfcSupported === false && "Your browser or device does not support Web NFC. This feature is currently available on Chrome for Android."}
         </AlertDescription>
       </Alert>

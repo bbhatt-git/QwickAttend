@@ -1,4 +1,3 @@
-
 'use client';
 
 import { UsbScanner } from '@/components/scan/usb-scanner';
@@ -9,7 +8,7 @@ export default function UsbScanPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">External USB Scanner</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Scan NFC (External)</h1>
         <p className="text-muted-foreground">
           Use a USB-connected NFC or QR code scanner to take attendance.
         </p>
