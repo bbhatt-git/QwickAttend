@@ -1,65 +1,72 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { NfcScanner } from '@/components/scan/nfc-scanner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Nfc, ScanLine } from 'lucide-react';
+import { Smartphone, Usb, ArrowRight } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export default function NfcPage() {
-  const [isScanning, setIsScanning] = useState(false);
-  const [isNfcSupported, setIsNfcSupported] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if ('NDEFReader' in window) {
-      setIsNfcSupported(true);
-    } else {
-      setIsNfcSupported(false);
-    }
-  }, []);
-
-  const startScan = () => {
-    if (isNfcSupported) {
-        setIsScanning(true);
-    }
-  }
-
+export default function NfcOptionsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Scan NFC (In-built)</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Scan with NFC</h1>
         <p className="text-muted-foreground">
-          Use your device's built-in NFC reader to mark a student as present.
+          Choose how you want to scan student NFC tags for attendance.
         </p>
       </div>
-      
-      <Alert variant={isNfcSupported === false ? "destructive" : "default"}>
-        <Nfc className="h-4 w-4" />
-        <AlertTitle>
-            {isNfcSupported === null && "Checking NFC Support..."}
-            {isNfcSupported === true && "NFC Ready"}
-            {isNfcSupported === false && "NFC Not Supported"}
-        </AlertTitle>
+
+      <Alert>
+        <Smartphone className="h-4 w-4" />
+        <AlertTitle>What is NFC?</AlertTitle>
         <AlertDescription>
-           {isNfcSupported === true && "This feature requires granting permission to use your device's built-in NFC reader."}
-           {isNfcSupported === false && "Your browser or device does not support Web NFC. This feature is currently available on Chrome for Android."}
+          Near-Field Communication (NFC) allows for quick, contactless data exchange. You can use your device's built-in reader (on compatible phones) or an external USB scanner to take attendance.
         </AlertDescription>
       </Alert>
-      
-      <div className="flex justify-center">
-        {isScanning ? (
-          <NfcScanner />
-        ) : (
-          <div className="flex flex-col items-center justify-center w-full max-w-md h-[400px] bg-muted rounded-lg border-2 border-dashed">
-            <ScanLine className="w-16 h-16 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold text-foreground">Ready to Scan</h2>
-            <p className="text-muted-foreground mb-6 text-center px-4">Click the button below to start scanning for NFC tags.</p>
-            <Button size="lg" onClick={startScan} disabled={!isNfcSupported}>
-              <Nfc className="mr-2 h-5 w-5" />
-              Start Scanning
-            </Button>
-          </div>
-        )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="flex flex-col">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-lg">
+                <Smartphone className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle>Use In-Built NFC Reader</CardTitle>
+            </div>
+            <CardDescription className="pt-2">
+              Use your Android phone or tablet's built-in NFC capability to scan tags. Best for mobile use.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow flex items-end">
+            <Link href="/dashboard/nfc/in-built" className="w-full">
+              <Button className="w-full">
+                Start In-Built Scan <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-lg">
+                <Usb className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle>Use External NFC Reader</CardTitle>
+            </div>
+            <CardDescription className="pt-2">
+              Use a USB-connected NFC scanner in keyboard mode. Ideal for a stationary attendance station with a laptop.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow flex items-end">
+            <Link href="/dashboard/nfc/external" className="w-full">
+              <Button className="w-full">
+                Start External Scan <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
