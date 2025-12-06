@@ -9,17 +9,17 @@ export default function UsbScanPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Scan with USB Reader</h1>
+        <h1 className="text-3xl font-bold tracking-tight">External USB Scanner</h1>
         <p className="text-muted-foreground">
-          Use a USB QR or NFC scanner in keyboard mode to take attendance.
+          Use a USB-connected NFC or QR code scanner to take attendance.
         </p>
       </div>
       
       <Alert>
         <Usb className="h-4 w-4" />
-        <AlertTitle>USB Scanner Required</AlertTitle>
+        <AlertTitle>External Scanner Required</AlertTitle>
         <AlertDescription>
-          This feature requires a USB-connected scanner configured in "Keyboard Emulation" or "Keyboard Wedge" mode. Click on the area below to begin scanning.
+          This feature requires a USB-connected scanner (NFC or QR) configured in "Keyboard Emulation" or "Keyboard Wedge" mode. Click the area below to begin scanning.
         </AlertDescription>
       </Alert>
       
