@@ -312,15 +312,26 @@ export default function AttendanceView() {
   };
 
   const handleDateChange = (direction: 'prev' | 'next') => {
-    const newDate = new NepaliDate(bsDate); // Create a new instance from the current state
-    if (direction === 'prev') {
-        newDate.setDate(newDate.getDate() - 1);
-    } else {
-        newDate.setDate(newDate.getDate() + 1);
-    }
+    try {
+      const year = bsDate.getYear();
+      const month = bsDate.getMonth();
+      const day = bsDate.getDate();
 
-    if (newDate.toJsDate() <= new Date()) {
-      setBsDate(newDate);
+      const tempDate = new NepaliDate(year, month, day);
+
+      if (direction === 'prev') {
+        tempDate.setDate(day - 1);
+      } else {
+        tempDate.setDate(day + 1);
+      }
+
+      if (tempDate.toJsDate() <= new Date()) {
+        setBsDate(tempDate);
+      }
+    } catch (error) {
+      console.error("Error changing date:", error);
+      // Fallback to a known good state if something goes wrong
+      setBsDate(new NepaliDate());
     }
   };
 
