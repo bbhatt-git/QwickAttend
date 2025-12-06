@@ -15,5 +15,4 @@ export const navItems = [
   { href: '/dashboard/nfc', icon: Nfc, label: 'Scan NFC' },
   { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
   { href: '/dashboard/holidays', icon: CalendarOff, label: 'Holidays' },
-  { href: '/dashboard/generate-qr', icon: QrCode, label: 'Generate QR' },
 ];
