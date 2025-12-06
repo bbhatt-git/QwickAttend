@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { useStudentData } from '@/context/student-provider';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import type { Student, AttendanceRecord, Holiday } from '@/lib/types';
 import {
@@ -43,6 +44,7 @@ type MonthlyRecord = {
 export default function StudentHistoryView() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { students, isLoading: isLoadingStudents } = useStudentData();
 
   const [open, setOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -51,13 +53,6 @@ export default function StudentHistoryView() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [displayDate, setDisplayDate] = useState(new Date());
 
-
-  const studentsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, `teachers/${user.uid}/students`), orderBy('name'));
-  }, [user, firestore]);
-
-  const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
   
   useEffect(() => {
     const fetchHistoryAndHolidays = async () => {
@@ -223,7 +218,7 @@ export default function StudentHistoryView() {
                 <CommandList>
                     <CommandEmpty>No student found.</CommandEmpty>
                     <CommandGroup>
-                    {isLoadingStudents ? <div className='p-2'>Loading...</div> : students?.map((student) => (
+                    {isLoadingStudents ? <div className='p-2'><Loader2 className="h-4 w-4 animate-spin"/></div> : students?.map((student) => (
                         <CommandItem
                         key={student.id}
                         value={`${student.name} ${student.studentId}`}

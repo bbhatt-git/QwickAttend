@@ -8,6 +8,7 @@ import MainSidebar from '@/components/dashboard/main-sidebar';
 import { Loader2 } from 'lucide-react';
 import { Suspense, useEffect } from 'react';
 import Footer from '@/components/common/footer';
+import { StudentProvider } from '@/context/student-provider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -28,16 +29,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-      <MainSidebar />
-      <div className="flex flex-col">
-        <Header />
-        <main className="flex flex-1 flex-col gap-4 bg-muted/40 p-4 lg:gap-6 lg:p-6">
-          <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-            {children}
-          </Suspense>
-        </main>
+    <StudentProvider>
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <MainSidebar />
+        <div className="flex flex-col">
+          <Header />
+          <main className="flex flex-1 flex-col gap-4 bg-muted/40 p-4 lg:gap-6 lg:p-6">
+            <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+              {children}
+            </Suspense>
+          </main>
+        </div>
       </div>
-    </div>
+    </StudentProvider>
   );
 }

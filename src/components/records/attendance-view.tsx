@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, isValid } from 'date-fns';
 import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff, FileText } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
+import { useStudentData } from '@/context/student-provider';
 import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import type { Student, AttendanceRecord, Holiday } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -39,11 +40,11 @@ export default function AttendanceView() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { students: allStudents, isLoading: isLoadingStudents } = useStudentData();
   
   const [bsDate, setBsDate] = useState(new NepaliDate());
   const adDate = useMemo(() => bsDate.toJsDate(), [bsDate]);
 
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,16 +59,6 @@ export default function AttendanceView() {
   const [leaveReason, setLeaveReason] = useState('');
 
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchStudents = async () => {
-      const q = query(collection(firestore, `teachers/${user.uid}/students`), orderBy('name'));
-      const querySnapshot = await getDocs(q);
-      setAllStudents(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student)));
-    };
-    fetchStudents();
-  }, [user, firestore]);
-  
   useEffect(() => {
     if (!user || !adDate || !isValid(adDate)) return;
     setLoading(true);
@@ -90,11 +81,13 @@ export default function AttendanceView() {
   }, [user, adDate, firestore, refetchTrigger]);
 
   const uniqueClasses = useMemo(() => {
+    if (!allStudents) return [];
     const classes = new Set(allStudents.map(s => s.class));
     return Array.from(classes);
   }, [allStudents]);
   
   const students = useMemo(() => {
+    if (!allStudents) return [];
     let filteredStudents = allStudents;
     if (sectionFilter !== 'all') {
       filteredStudents = filteredStudents.filter(student => student.section === sectionFilter);
@@ -121,6 +114,10 @@ export default function AttendanceView() {
     if (todayHoliday || isSaturday) {
       return { presentStudents: [], absentStudents: [], onLeaveStudents: [] };
     }
+    if (!students) {
+      return { presentStudents: [], absentStudents: [], onLeaveStudents: [] };
+    }
+
     const present = attendance.filter(a => a.status === 'present');
     const onLeave = attendance.filter(a => a.status === 'on_leave');
     
@@ -227,7 +224,7 @@ export default function AttendanceView() {
         headers.splice(1, 0, 'Section');
       }
       
-      const studentsForReport = [...students].sort((a, b) => a.studentId.localeCompare(b.studentId));
+      const studentsForReport = [...(students || [])].sort((a, b) => a.studentId.localeCompare(b.studentId));
 
       const dataToExport = studentsForReport.map(student => {
         const rowData: { [key: string]: string | number } = {
@@ -352,6 +349,8 @@ export default function AttendanceView() {
     window.location.href = smsUrl;
   };
 
+  const pageIsLoading = loading || isLoadingStudents;
+
   return (
     <div className="space-y-6">
        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
@@ -437,7 +436,7 @@ export default function AttendanceView() {
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-72">
-                {loading ? <Skeleton className="h-full w-full"/> : presentStudents.length > 0 ? (
+                {pageIsLoading ? <Skeleton className="h-full w-full"/> : presentStudents.length > 0 ? (
                     <ul className="space-y-2">
                         {presentStudents.map(s => <li key={s.id} className="text-sm p-2 rounded-md bg-green-100 dark:bg-green-900/50 flex justify-between items-center">{s.name} <span className="text-xs text-muted-foreground">{s.attendanceTime ? format(s.attendanceTime, 'p') : ''}</span></li>)}
                     </ul>
@@ -452,7 +451,7 @@ export default function AttendanceView() {
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-72">
-                {loading ? <Skeleton className="h-full w-full"/> : onLeaveStudents.length > 0 ? (
+                {pageIsLoading ? <Skeleton className="h-full w-full"/> : onLeaveStudents.length > 0 ? (
                     <ul className="space-y-2">
                         {onLeaveStudents.map(s => (
                             <li key={s.id} className="text-sm p-2 rounded-md bg-yellow-100 dark:bg-yellow-900/50 flex justify-between items-center">
@@ -475,7 +474,7 @@ export default function AttendanceView() {
             </CardHeader>
             <CardContent>
             <ScrollArea className="h-72">
-                {loading ? <Skeleton className="h-full w-full"/> : absentStudents.length > 0 ? (
+                {pageIsLoading ? <Skeleton className="h-full w-full"/> : absentStudents.length > 0 ? (
                     <ul className="space-y-2">
                         {absentStudents.map(s => (
                         <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50 flex justify-between items-center">
@@ -540,7 +539,3 @@ export default function AttendanceView() {
     </div>
   );
 }
-
-  
-
-    

@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useState, useMemo, useEffect } from 'react';
+import { useStudentData } from '@/context/student-provider';
+import { useDebounce } from '@/hooks/use-debounce';
 import type { Student } from '@/lib/types';
 import { SECTIONS } from '@/lib/constants';
 
@@ -33,37 +33,16 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentActions } from '@/components/students/student-actions';
 import { Button } from '../ui/button';
+import { EditStudentDialog } from './edit-student-dialog';
 
 export function StudentsTable() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { students, isLoading, refetchStudents } = useStudentData();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('studentId');
   const [sectionFilter, setSectionFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
-  
-  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
-  const studentsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    
-    let q = collection(firestore, `teachers/${user.uid}/students`);
-
-    const finalQuery = query(q, orderBy(sortBy, 'asc'));
-
-    return finalQuery;
-  }, [firestore, user, refetchTrigger, sortBy]);
-
-
-  const { data: studentsFromHook, isLoading } = useCollection<Student>(studentsQuery);
-
-  const students = useMemo(() => {
-    if (!studentsFromHook || !user) return [];
-    return studentsFromHook.map(student => ({
-      ...student,
-      teacherId: user.uid,
-    }));
-  }, [studentsFromHook, user]);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const uniqueClasses = useMemo(() => {
     if (!students) return [];
@@ -71,10 +50,10 @@ export function StudentsTable() {
     return Array.from(classes).sort();
   }, [students]);
 
-  const filteredStudents = useMemo(() => {
+  const sortedAndFilteredStudents = useMemo(() => {
     if (!students) return [];
     
-    let filtered = students;
+    let filtered = [...students];
 
     if (sectionFilter !== 'all') {
       filtered = filtered.filter(student => student.section === sectionFilter);
@@ -84,19 +63,21 @@ export function StudentsTable() {
       filtered = filtered.filter(student => student.class === classFilter);
     }
     
-    if (searchTerm) {
+    if (debouncedSearchTerm) {
       filtered = filtered.filter(student =>
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
+        student.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        student.studentId.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
       );
     }
 
-    return filtered;
-  }, [students, searchTerm, sectionFilter, classFilter]);
+    return filtered.sort((a, b) => {
+        if (sortBy === 'name') {
+            return a.name.localeCompare(b.name);
+        }
+        return a.studentId.localeCompare(b.studentId);
+    });
 
-  const handleActionComplete = () => {
-    setRefetchTrigger(count => count + 1);
-  };
+  }, [students, debouncedSearchTerm, sectionFilter, classFilter, sortBy]);
 
   return (
     <Card>
@@ -173,16 +154,19 @@ export function StudentsTable() {
                   <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
                 </TableRow>
               ))
-            ) : filteredStudents.length > 0 ? (
-              filteredStudents.map((student) => (
+            ) : sortedAndFilteredStudents.length > 0 ? (
+              sortedAndFilteredStudents.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell className="hidden sm:table-cell">{student.studentId}</TableCell>
                   <TableCell className="hidden md:table-cell">{student.class}</TableCell>
                   <TableCell className="hidden md:table-cell">{student.section}</TableCell>
                   <TableCell className="hidden lg:table-cell">{student.contact || '-'}</TableCell>
-                  <TableCell>
-                    <StudentActions student={student} onActionComplete={handleActionComplete} />
+                  <TableCell className='flex gap-2 justify-end'>
+                    <EditStudentDialog student={student} onStudentUpdated={refetchStudents}>
+                      <Button variant="outline" size="sm">Edit</Button>
+                    </EditStudentDialog>
+                    <StudentActions student={student} onActionComplete={refetchStudents} />
                   </TableCell>
                 </TableRow>
               ))
