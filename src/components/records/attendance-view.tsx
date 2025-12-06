@@ -104,6 +104,11 @@ export default function AttendanceView() {
     }
     return filteredStudents;
   }, [allStudents, sectionFilter, classFilter]);
+
+  const isSaturday = useMemo(() => {
+    if (!bsDate) return false;
+    return bsDate.getDay() === 6; // 6 corresponds to Saturday
+  }, [bsDate]);
   
   const todayHoliday = useMemo(() => {
     if (!adDate) return null;
@@ -113,7 +118,7 @@ export default function AttendanceView() {
 
 
   const { presentStudents, absentStudents, onLeaveStudents } = useMemo(() => {
-    if (todayHoliday) {
+    if (todayHoliday || isSaturday) {
       return { presentStudents: [], absentStudents: [], onLeaveStudents: [] };
     }
     const present = attendance.filter(a => a.status === 'present');
@@ -141,7 +146,7 @@ export default function AttendanceView() {
     const absent = students.filter(s => !presentStudentIds.has(s.studentId) && !onLeaveStudentIds.has(s.studentId));
 
     return { presentStudents: presentWithName, absentStudents: absent, onLeaveStudents: onLeaveWithName };
-  }, [students, attendance, todayHoliday]);
+  }, [students, attendance, todayHoliday, isSaturday]);
   
   const handleMarkAsLeave = async () => {
     if (!user || !adDate || !studentForLeave) return;
@@ -398,15 +403,21 @@ export default function AttendanceView() {
             </Button>
         </div>
       </div>
-      {todayHoliday && (
+      {todayHoliday ? (
         <Card className="text-center p-8">
             <CardHeader>
                 <CardTitle className='flex items-center justify-center gap-2 text-2xl'><CalendarOff className="h-8 w-8 text-primary"/>Holiday</CardTitle>
                 <CardDescription className="text-lg">{todayHoliday.name}</CardDescription>
             </CardHeader>
         </Card>
-      )}
-      {!todayHoliday && (
+      ) : isSaturday ? (
+        <Card className="text-center p-8">
+            <CardHeader>
+                <CardTitle className='flex items-center justify-center gap-2 text-2xl'><CalendarOff className="h-8 w-8 text-primary"/>Saturday</CardTitle>
+                <CardDescription className="text-lg">No attendance is recorded on Saturdays.</CardDescription>
+            </CardHeader>
+        </Card>
+      ) : (
         <div className="grid gap-6 md:grid-cols-3">
             <Card>
             <CardHeader>
@@ -518,3 +529,5 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+  
