@@ -312,7 +312,7 @@ export default function AttendanceView() {
   };
 
   const handleDateChange = (direction: 'prev' | 'next') => {
-    const newDate = new NepaliDate(bsDate);
+    const newDate = new NepaliDate(bsDate); // Create a new instance from the current state
     if (direction === 'prev') {
         newDate.setDate(newDate.getDate() - 1);
     } else {
@@ -531,3 +531,5 @@ export default function AttendanceView() {
 }
 
   
+
+    
