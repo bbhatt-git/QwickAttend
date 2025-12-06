@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useStudentData } from '@/context/student-provider';
 import { useDebounce } from '@/hooks/use-debounce';
 import type { Student } from '@/lib/types';
@@ -32,8 +32,6 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StudentActions } from '@/components/students/student-actions';
-import { Button } from '../ui/button';
-import { EditStudentDialog } from './edit-student-dialog';
 
 export function StudentsTable() {
   const { students, isLoading, refetchStudents } = useStudentData();
@@ -162,11 +160,10 @@ export function StudentsTable() {
                   <TableCell className="hidden md:table-cell">{student.class}</TableCell>
                   <TableCell className="hidden md:table-cell">{student.section}</TableCell>
                   <TableCell className="hidden lg:table-cell">{student.contact || '-'}</TableCell>
-                  <TableCell className='flex gap-2 justify-end'>
-                    <EditStudentDialog student={student} onStudentUpdated={refetchStudents}>
-                      <Button variant="outline" size="sm">Edit</Button>
-                    </EditStudentDialog>
-                    <StudentActions student={student} onActionComplete={refetchStudents} />
+                  <TableCell>
+                    <div className="flex justify-end">
+                      <StudentActions student={student} onActionComplete={refetchStudents} />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
