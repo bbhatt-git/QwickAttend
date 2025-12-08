@@ -41,23 +41,15 @@ export function UserNav() {
     }
   };
 
-  const getInitials = () => {
-    if (user?.displayName) {
-      return user.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.substring(0, 2).toUpperCase();
-    }
-    return 'U';
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
           <Avatar>
             <AvatarImage src={user?.photoURL || ''} alt="User avatar" />
-            <AvatarFallback>{getInitials()}</AvatarFallback>
+            <AvatarFallback>
+              <UserIcon className="h-5 w-5" />
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
