@@ -38,11 +38,11 @@ export default function Header() {
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <SheetHeader className="sr-only">
+            <SheetContent side="left" className="flex flex-col p-0">
+              <SheetHeader className="p-6 pb-0 sr-only">
                 <SheetTitle>Navigation Menu</SheetTitle>
               </SheetHeader>
-              <nav className="grid gap-2 text-lg font-medium">
+              <div className="p-6">
                 <Link
                   href="/dashboard"
                   className="flex items-center gap-2 text-lg font-bold"
@@ -50,8 +50,10 @@ export default function Header() {
                   <Fingerprint className="h-6 w-6" />
                   <span>QwickAttend</span>
                 </Link>
+              </div>
+              <nav className="grid gap-2 text-lg font-medium p-6 pt-0">
                 {navItems.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname.startsWith(item.href);
                     return (
                         <Link
                         key={item.href}
@@ -67,7 +69,7 @@ export default function Header() {
                     )
                 })}
               </nav>
-               <div className="mt-auto">
+               <div className="mt-auto p-4">
                 <Footer />
               </div>
             </SheetContent>
