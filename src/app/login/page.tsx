@@ -1,6 +1,7 @@
 
 import { LoginForm } from '@/components/auth/login-form';
-import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
   return (
@@ -12,6 +13,13 @@ export default function LoginPage() {
         </p>
       </div>
       <LoginForm />
+      <Alert className="mt-6 text-left">
+        <ShieldCheck className="h-4 w-4" />
+        <AlertTitle>Admin Notice</AlertTitle>
+        <AlertDescription>
+          To prevent unauthorized access, new user accounts must now be created by an administrator directly in the Firebase console.
+        </AlertDescription>
+      </Alert>
     </>
   );
 }
