@@ -203,7 +203,7 @@ Summary:
         default: statusText = 'N/A';
       }
       return [
-        new NepaliDate(record.adDate).format('dddd, DD MMMM, YYYY'),
+        new NepaliDate(record.adDate).format('DD MMMM, YYYY'),
         statusText,
       ];
     });
@@ -394,7 +394,7 @@ Summary:
                                 {monthlyRecords.map(record => (
                                     <li key={record.date} className="flex justify-between items-center p-2 rounded-md bg-muted">
                                         <div className='flex flex-col'>
-                                            <span className="font-medium">{new NepaliDate(record.adDate).format('dddd, DD MMMM, YYYY')}</span>
+                                            <span className="font-medium">{new NepaliDate(record.adDate).format('DD MMMM, YYYY')}</span>
                                             {record.status === 'holiday' && record.holidayName && (
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1"><CalendarOff className="h-3 w-3" />{record.holidayName}</span>
                                             )}
