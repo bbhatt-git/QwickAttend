@@ -164,42 +164,39 @@ export default function StudentHistoryView() {
     if (!selectedStudent || !user) return;
   
     const loadImageAsDataUrl = (url: string): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        fetch(url)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`Failed to fetch image at URL: ${url}. Status: ${response.status}`);
-            }
-            return response.blob();
-          })
-          .then(blob => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              if (typeof reader.result === 'string') {
-                resolve(reader.result);
-              } else {
-                reject(new Error('Failed to read blob as Data URL.'));
-              }
-            };
-            reader.onerror = () => {
-              reject(new Error(`FileReader error for URL: ${url}`));
-            };
-            reader.readAsDataURL(blob);
-          })
-          .catch(error => reject(error));
-      });
+        return new Promise((resolve, reject) => {
+            fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch image at URL: ${url}. Status: ${response.status}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    if (typeof reader.result === 'string') {
+                        resolve(reader.result);
+                    } else {
+                        reject(new Error('Failed to read blob as Data URL.'));
+                    }
+                };
+                reader.onerror = (error) => {
+                    reject(new Error(`FileReader error for URL: ${url}: ${error}`));
+                };
+                reader.readAsDataURL(blob);
+            })
+            .catch(error => reject(error));
+        });
     };
   
     const logoUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sarc.png';
     const signatureUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sign.png';
-    const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${selectedStudent.studentId}`;
-    const studentQrUrl = selectedStudent.qrCodeUrl || qrCodeApiUrl;
     
     Promise.all([
       loadImageAsDataUrl(logoUrl),
-      loadImageAsDataUrl(studentQrUrl),
       loadImageAsDataUrl(signatureUrl)
-    ]).then(([logoDataUrl, qrCodeDataUrl, signatureDataUrl]) => {
+    ]).then(([logoDataUrl, signatureDataUrl]) => {
       const doc = new jsPDF() as jsPDFWithAutoTable;
       const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
       const pageHeight = doc.internal.pageSize.getHeight();
@@ -210,54 +207,55 @@ export default function StudentHistoryView() {
       doc.addImage(logoDataUrl, 'PNG', margin, 12, 25, 25);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
+      doc.setTextColor('#2563EB'); // Blue color for foundation name
       doc.text('SARC Education Foundation', pageWidth - margin, 18, { align: 'right' });
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
+      doc.setTextColor(100);
       doc.text('Bhimdatta - 06, Aithpur, Kanchanpur', pageWidth - margin, 24, { align: 'right' });
       doc.setDrawColor(220);
-      doc.setLineWidth(0.5);
+      doc.setLineWidth(0.2);
       doc.line(margin, 40, pageWidth - margin, 40);
   
       // --- REPORT TITLE ---
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40);
       doc.text('Student Attendance Report', pageWidth / 2, 55, { align: 'center' });
   
       // --- STUDENT INFO ---
       const rollNo = selectedStudent.studentId.substring(4);
       const infoStartY = 70;
+      const infoBlockWidth = (pageWidth - margin * 2) / 2;
+
       doc.setFontSize(10);
-      
-      const info = [
+      const infoLeft = [
           { label: 'Student Name:', value: selectedStudent.name },
           { label: 'Class:', value: selectedStudent.class },
           { label: 'Section:', value: selectedStudent.section },
           { label: 'Roll No.:', value: rollNo },
       ];
-  
-      const infoRight = [
-          { label: 'Student ID:', value: selectedStudent.studentId },
-          { label: 'Report Month:', value: bsMonthYear },
-      ];
-  
-      info.forEach((item, index) => {
+      
+      infoLeft.forEach((item, index) => {
           doc.setTextColor(100);
           doc.text(item.label, margin, infoStartY + (index * 7));
-          doc.setTextColor(40);
+          doc.setTextColor(0);
           doc.setFont('helvetica', 'bold');
           doc.text(item.value, margin + 35, infoStartY + (index * 7));
           doc.setFont('helvetica', 'normal');
       });
-  
-      // Add QR Code
-      doc.addImage(qrCodeDataUrl, 'PNG', pageWidth - margin - 40, infoStartY, 35, 35);
-  
-      infoRight.forEach((item, index) => {
+
+      const infoRight = [
+          { label: 'Student ID:', value: selectedStudent.studentId },
+          { label: 'Report Month:', value: bsMonthYear },
+      ];
+      
+       infoRight.forEach((item, index) => {
           doc.setTextColor(100);
-          doc.text(item.label, pageWidth - margin - 70, infoStartY + 45 + (index * 7));
-          doc.setTextColor(40);
+          doc.text(item.label, margin + infoBlockWidth, infoStartY + (index * 7));
+          doc.setTextColor(0);
           doc.setFont('helvetica', 'bold');
-          doc.text(item.value, pageWidth - margin - 40, infoStartY + 45 + (index * 7));
+          doc.text(item.value, margin + infoBlockWidth + 35, infoStartY + (index * 7));
           doc.setFont('helvetica', 'normal');
       });
   
@@ -276,8 +274,8 @@ export default function StudentHistoryView() {
           ['Total On Leave', `${stats.onLeave} days`],
         ],
         headStyles: {
-          fillColor: [241, 245, 249], // Tailwind's slate-100
-          textColor: [40, 40, 40],
+          fillColor: [79, 70, 229], // Tailwind's indigo-600
+          textColor: [255, 255, 255],
           fontStyle: 'bold',
         },
         styles: {
@@ -290,8 +288,7 @@ export default function StudentHistoryView() {
       // --- SIGNATURE ---
       let finalY = (doc as any).lastAutoTable.finalY + 20;
       const signatureX = pageWidth - margin;
-      
-      // Add signature image
+
       doc.addImage(signatureDataUrl, 'PNG', signatureX - 60, finalY - 10, 40, 20);
 
       doc.setLineWidth(0.2);
@@ -323,7 +320,7 @@ export default function StudentHistoryView() {
       doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
     }).catch(error => {
       console.error("Error generating PDF:", error);
-      alert("Failed to load required images. Could not generate PDF.");
+      alert(`Failed to load required images for the PDF. ${error.message}`);
     });
   };
 
