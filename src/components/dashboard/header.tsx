@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   Menu,
-  Fingerprint
+  UserCheck
 } from 'lucide-react';
 import { UserNav } from './user-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -47,8 +47,8 @@ export default function Header() {
                   href="/dashboard"
                   className="flex items-center gap-2 text-lg font-bold"
                 >
-                  <Fingerprint className="h-6 w-6" />
-                  <span>QwickAttend</span>
+                  <UserCheck className="h-6 w-6" />
+                  <span className='font-extrabold tracking-tight'>QwickAttend</span>
                 </Link>
               </div>
               <nav className="grid gap-2 text-lg font-medium p-6 pt-0">
