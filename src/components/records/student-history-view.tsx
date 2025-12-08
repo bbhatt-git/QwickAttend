@@ -163,30 +163,23 @@ export default function StudentHistoryView() {
   const handlePdfExport = () => {
     if (!selectedStudent || !user) return;
   
-    const loadImageAsDataUrl = (url: string): Promise<string> => {
+    const loadImageAsDataUrl = (url: string): Promise<{ dataUrl: string, width: number, height: number }> => {
         return new Promise((resolve, reject) => {
-            fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch image at URL: ${url}. Status: ${response.status}`);
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    if (typeof reader.result === 'string') {
-                        resolve(reader.result);
-                    } else {
-                        reject(new Error('Failed to read blob as Data URL.'));
-                    }
-                };
-                reader.onerror = (error) => {
-                    reject(new Error(`FileReader error for URL: ${url}: ${error}`));
-                };
-                reader.readAsDataURL(blob);
-            })
-            .catch(error => reject(error));
+            const img = new Image();
+            img.crossOrigin = "Anonymous"; // Try to avoid CORS issues
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0);
+                const dataUrl = canvas.toDataURL('image/png');
+                resolve({ dataUrl, width: img.width, height: img.height });
+            };
+            img.onerror = (error) => {
+                reject(new Error(`Failed to load image at URL: ${url}: ${error}`));
+            };
+            img.src = url;
         });
     };
   
@@ -196,7 +189,7 @@ export default function StudentHistoryView() {
     Promise.all([
       loadImageAsDataUrl(logoUrl),
       loadImageAsDataUrl(signatureUrl)
-    ]).then(([logoDataUrl, signatureDataUrl]) => {
+    ]).then(([logo, signature]) => {
       const doc = new jsPDF() as jsPDFWithAutoTable;
       const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
       const pageHeight = doc.internal.pageSize.getHeight();
@@ -204,7 +197,7 @@ export default function StudentHistoryView() {
       const margin = 14;
   
       // --- HEADER ---
-      doc.addImage(logoDataUrl, 'PNG', margin, 12, 25, 25);
+      doc.addImage(logo.dataUrl, 'PNG', margin, 12, 25, 25);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.setTextColor('#2563EB'); // Blue color for foundation name
@@ -224,15 +217,19 @@ export default function StudentHistoryView() {
       doc.text('Student Attendance Report', pageWidth / 2, 55, { align: 'center' });
   
       // --- STUDENT INFO ---
-      const rollNo = selectedStudent.studentId.substring(4);
+      const classStr = selectedStudent.class;
+      const sectionStr = selectedStudent.section;
+      const rollNoRegex = new RegExp(`^${sectionStr.substring(0, 2)}${classStr}(\\d+)$`, 'i');
+      const match = selectedStudent.studentId.match(rollNoRegex);
+      const rollNo = match ? match[1] : 'N/A';
+      
       const infoStartY = 70;
-      const infoBlockWidth = (pageWidth - margin * 2) / 2;
 
       doc.setFontSize(10);
       const infoLeft = [
           { label: 'Student Name:', value: selectedStudent.name },
-          { label: 'Class:', value: selectedStudent.class },
-          { label: 'Section:', value: selectedStudent.section },
+          { label: 'Class:', value: classStr },
+          { label: 'Section:', value: sectionStr },
           { label: 'Roll No.:', value: rollNo },
       ];
       
@@ -252,10 +249,10 @@ export default function StudentHistoryView() {
       
        infoRight.forEach((item, index) => {
           doc.setTextColor(100);
-          doc.text(item.label, margin + infoBlockWidth, infoStartY + (index * 7));
+          doc.text(item.label, margin + (pageWidth/2.5) , infoStartY + (index * 7));
           doc.setTextColor(0);
           doc.setFont('helvetica', 'bold');
-          doc.text(item.value, margin + infoBlockWidth + 35, infoStartY + (index * 7));
+          doc.text(item.value, margin + (pageWidth/2.5) + 35, infoStartY + (index * 7));
           doc.setFont('helvetica', 'normal');
       });
   
@@ -287,25 +284,27 @@ export default function StudentHistoryView() {
   
       // --- SIGNATURE ---
       let finalY = (doc as any).lastAutoTable.finalY + 20;
-      const signatureX = pageWidth - margin;
+      const signatureBlockWidth = 60;
+      const signatureX = pageWidth - margin - signatureBlockWidth;
+      const signatureLineY = finalY + 15;
+      
+      const signatureImageWidth = 40;
+      const signatureImageHeight = (signatureImageWidth / signature.width) * signature.height;
 
       // Position the signature image so its bottom touches the line
-      const signatureImageHeight = 20;
-      const signatureLineY = finalY + 15;
-      doc.addImage(signatureDataUrl, 'PNG', signatureX - 60, signatureLineY - signatureImageHeight, 40, signatureImageHeight);
-
+      doc.addImage(signature.dataUrl, 'PNG', pageWidth - margin - signatureImageWidth, signatureLineY - signatureImageHeight, signatureImageWidth, signatureImageHeight);
 
       doc.setLineWidth(0.2);
-      doc.line(signatureX - 60, signatureLineY, signatureX, signatureLineY);
+      doc.line(signatureX, signatureLineY, pageWidth - margin, signatureLineY);
       
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text('Bhagwat Dev Bhatt', signatureX, signatureLineY + 7, { align: 'right' });
+      doc.text('Bhagwat Dev Bhatt', pageWidth - margin, signatureLineY + 7, { align: 'right' });
       
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100);
-      doc.text('Program Coordinator', signatureX, signatureLineY + 12, { align: 'right' });
-      doc.text('SARC Education Foundation', signatureX, signatureLineY + 17, { align: 'right' });
+      doc.text('Program Coordinator', pageWidth - margin, signatureLineY + 12, { align: 'right' });
+      doc.text('SARC Education Foundation', pageWidth - margin, signatureLineY + 17, { align: 'right' });
   
       // --- FOOTER ---
       doc.setDrawColor(220);
@@ -313,7 +312,13 @@ export default function StudentHistoryView() {
   
       doc.setFontSize(8);
       doc.setTextColor(150);
-      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, margin, pageHeight - 10);
+      const today = new Date();
+      const formattedDate = today.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      doc.text(`Generated on: ${formattedDate}`, margin, pageHeight - 10);
   
       doc.setFont('helvetica', 'italic');
       doc.text("Made with QwickAttend", pageWidth / 2, pageHeight - 10, { align: 'center' });
@@ -514,5 +519,7 @@ export default function StudentHistoryView() {
 }
 
 
+
+    
 
     
