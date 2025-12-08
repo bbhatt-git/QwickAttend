@@ -66,7 +66,7 @@ export function NepaliCalendar({ mode = "single", value, onSelect }: NepaliCalen
     } else { // range mode
       const range = value as DateRange;
       if (!range?.from || range.to) {
-        onSelect?.({ from: day, to: day });
+        onSelect?.({ from: day, to: undefined });
       } else {
         if (day < range.from) {
             onSelect?.({ from: day, to: range.from });
@@ -79,7 +79,9 @@ export function NepaliCalendar({ mode = "single", value, onSelect }: NepaliCalen
 
   const isDateInRange = (date: NepaliDate, range?: DateRange) => {
     if (!range?.from || !range.to) return false;
-    return date >= range.from && date <= range.to;
+    const start = range.from < range.to ? range.from : range.to;
+    const end = range.from > range.to ? range.from : range.to;
+    return date >= start && date <= end;
   };
   
   const isDateHovered = (date: NepaliDate, range?: DateRange) => {
@@ -137,12 +139,16 @@ export function NepaliCalendar({ mode = "single", value, onSelect }: NepaliCalen
             isToday && "bg-accent text-accent-foreground",
             isDisabled && "text-muted-foreground opacity-50 cursor-not-allowed",
             !isSelected && !isToday && !isDisabled && "hover:bg-accent hover:text-accent-foreground",
-            isInRange && "bg-primary/20 text-primary-foreground rounded-none",
-            isInHoverRange && !isInRange && "bg-primary/10 rounded-none",
-            isRangeStart && "bg-primary text-primary-foreground rounded-l-full rounded-r-none hover:bg-primary hover:text-primary-foreground",
-            isRangeEnd && "bg-primary text-primary-foreground rounded-r-full rounded-l-none hover:bg-primary hover:text-primary-foreground",
-            isRangeStart && isRangeEnd && "rounded-full",
-            isSelected && mode === 'single' && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+            
+            // Range-specific styles
+            mode === 'range' && isInRange && "bg-primary/20 text-primary-foreground rounded-none",
+            mode === 'range' && isInHoverRange && !isInRange && "bg-primary/10 rounded-none",
+            mode === 'range' && isRangeStart && "bg-primary text-primary-foreground rounded-l-full rounded-r-none hover:bg-primary hover:text-primary-foreground",
+            mode === 'range' && isRangeEnd && "bg-primary text-primary-foreground rounded-r-full rounded-l-none hover:bg-primary hover:text-primary-foreground",
+            mode === 'range' && isRangeStart && isRangeEnd && "rounded-full",
+            
+            // Single-specific styles
+            mode === 'single' && isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
           )}
         >
           {i}

@@ -3,18 +3,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/theme-provider';
-import NepaliDate from 'nepali-date-converter';
-
-// Extend NepaliDate prototype to include an isSame method for easy comparison
-if (!(NepaliDate.prototype as any).isSame) {
-  (NepaliDate.prototype as any).isSame = function(otherDate: NepaliDate, unit: 'day' | 'month' | 'year' = 'day'): boolean {
-    if (!otherDate) return false;
-    // This is a simplified check. A real implementation should handle month/year units.
-    return this.getYear() === otherDate.getYear() &&
-           this.getMonth() === otherDate.getMonth() &&
-           this.getDate() === otherDate.getDate();
-  };
-}
 
 export const metadata: Metadata = {
   title: 'QwickAttend',

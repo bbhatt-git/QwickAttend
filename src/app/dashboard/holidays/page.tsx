@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useState, useMemo } from 'react';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 import { format, eachDayOfInterval } from 'date-fns';
 import { useForm } from 'react-hook-form';
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { NepaliCalendar, type DateRange } from '@/components/ui/nepali-calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon, PlusCircle, Trash2, Loader2, CalendarOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,7 +39,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 const holidayFormSchema = z.object({
   name: z.string().min(2, 'Holiday name must be at least 2 characters.'),
   holidayType: z.enum(['single', 'range']),
-  singleDate: z.instanceof(NepaliDate).optional(),
+  singleDate: z.custom<NepaliDate>().optional(),
   dateRange: z.custom<DateRange>().optional(),
 }).superRefine((data, ctx) => {
     if (data.holidayType === 'single' && !data.singleDate) {
