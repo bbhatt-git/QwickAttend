@@ -163,33 +163,57 @@ export default function StudentHistoryView() {
   const handlePdfExport = () => {
     if (!selectedStudent || !user) return;
   
-    const doc = new jsPDF() as jsPDFWithAutoTable;
-    const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
-    const primaryColor = '#4F46E5'; 
+    const loadImageAsDataUrl = (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        fetch(url)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image at URL: ${url}. Status: ${response.status}`);
+            }
+            return response.blob();
+          })
+          .then(blob => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (typeof reader.result === 'string') {
+                resolve(reader.result);
+              } else {
+                reject(new Error('Failed to read blob as Data URL.'));
+              }
+            };
+            reader.onerror = () => {
+              reject(new Error(`FileReader error for URL: ${url}`));
+            };
+            reader.readAsDataURL(blob);
+          })
+          .catch(error => reject(error));
+      });
+    };
+  
     const logoUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sarc.png';
-  
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.src = logoUrl;
-  
-    img.onload = () => {
+    const signatureUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sign.png';
+    const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${selectedStudent.studentId}`;
+    const studentQrUrl = selectedStudent.qrCodeUrl || qrCodeApiUrl;
+    
+    Promise.all([
+      loadImageAsDataUrl(logoUrl),
+      loadImageAsDataUrl(studentQrUrl),
+      loadImageAsDataUrl(signatureUrl)
+    ]).then(([logoDataUrl, qrCodeDataUrl, signatureDataUrl]) => {
+      const doc = new jsPDF() as jsPDFWithAutoTable;
+      const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
       const pageHeight = doc.internal.pageSize.getHeight();
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 14;
-      
-      // --- HEADER ---
-      doc.addImage(img, 'PNG', margin, 12, 25, 25);
   
+      // --- HEADER ---
+      doc.addImage(logoDataUrl, 'PNG', margin, 12, 25, 25);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
-      doc.setTextColor(primaryColor);
       doc.text('SARC Education Foundation', pageWidth - margin, 18, { align: 'right' });
-  
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.setTextColor(40);
       doc.text('Bhimdatta - 06, Aithpur, Kanchanpur', pageWidth - margin, 24, { align: 'right' });
-  
       doc.setDrawColor(220);
       doc.setLineWidth(0.5);
       doc.line(margin, 40, pageWidth - margin, 40);
@@ -197,14 +221,12 @@ export default function StudentHistoryView() {
       // --- REPORT TITLE ---
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(40);
       doc.text('Student Attendance Report', pageWidth / 2, 55, { align: 'center' });
   
       // --- STUDENT INFO ---
       const rollNo = selectedStudent.studentId.substring(4);
       const infoStartY = 70;
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
       
       const info = [
           { label: 'Student Name:', value: selectedStudent.name },
@@ -212,12 +234,12 @@ export default function StudentHistoryView() {
           { label: 'Section:', value: selectedStudent.section },
           { label: 'Roll No.:', value: rollNo },
       ];
-      
+  
       const infoRight = [
           { label: 'Student ID:', value: selectedStudent.studentId },
           { label: 'Report Month:', value: bsMonthYear },
-      ]
-
+      ];
+  
       info.forEach((item, index) => {
           doc.setTextColor(100);
           doc.text(item.label, margin, infoStartY + (index * 7));
@@ -226,21 +248,22 @@ export default function StudentHistoryView() {
           doc.text(item.value, margin + 35, infoStartY + (index * 7));
           doc.setFont('helvetica', 'normal');
       });
-      
+  
+      // Add QR Code
+      doc.addImage(qrCodeDataUrl, 'PNG', pageWidth - margin - 40, infoStartY, 35, 35);
+  
       infoRight.forEach((item, index) => {
           doc.setTextColor(100);
-          doc.text(item.label, pageWidth - 70, infoStartY + (index * 7));
+          doc.text(item.label, pageWidth - margin - 70, infoStartY + 45 + (index * 7));
           doc.setTextColor(40);
           doc.setFont('helvetica', 'bold');
-          doc.text(item.value, pageWidth - 40, infoStartY + (index * 7));
+          doc.text(item.value, pageWidth - margin - 40, infoStartY + 45 + (index * 7));
           doc.setFont('helvetica', 'normal');
       });
-
   
       // --- SUMMARY TABLE ---
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(40);
       doc.text('Monthly Attendance Summary', margin, 115);
   
       doc.autoTable({
@@ -253,8 +276,8 @@ export default function StudentHistoryView() {
           ['Total On Leave', `${stats.onLeave} days`],
         ],
         headStyles: {
-          fillColor: [79, 70, 229], // A less punchy blue: #4F46E5
-          textColor: 255,
+          fillColor: [241, 245, 249], // Tailwind's slate-100
+          textColor: [40, 40, 40],
           fontStyle: 'bold',
         },
         styles: {
@@ -265,42 +288,43 @@ export default function StudentHistoryView() {
       });
   
       // --- SIGNATURE ---
-      let finalY = (doc as any).lastAutoTable.finalY + 30;
+      let finalY = (doc as any).lastAutoTable.finalY + 20;
       const signatureX = pageWidth - margin;
       
+      // Add signature image
+      doc.addImage(signatureDataUrl, 'PNG', signatureX - 60, finalY - 10, 40, 20);
+
       doc.setLineWidth(0.2);
-      doc.line(signatureX - 60, finalY, signatureX, finalY);
+      doc.line(signatureX - 60, finalY + 15, signatureX, finalY + 15);
       
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text('Bhagwat Dev Bhatt', signatureX, finalY + 7, { align: 'right' });
+      doc.text('Bhagwat Dev Bhatt', signatureX, finalY + 22, { align: 'right' });
       
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100);
-      doc.text('Program Coordinator', signatureX, finalY + 12, { align: 'right' });
-      doc.text('SARC Education Foundation', signatureX, finalY + 17, { align: 'right' });
+      doc.text('Program Coordinator', signatureX, finalY + 27, { align: 'right' });
+      doc.text('SARC Education Foundation', signatureX, finalY + 32, { align: 'right' });
   
       // --- FOOTER ---
       doc.setDrawColor(220);
       doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
-
+  
       doc.setFontSize(8);
       doc.setTextColor(150);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, margin, pageHeight - 10);
-
+  
       doc.setFont('helvetica', 'italic');
       doc.text("Made with QwickAttend", pageWidth / 2, pageHeight - 10, { align: 'center' });
-
+  
       doc.setFont('helvetica', 'normal');
       doc.text(`Page 1 of 1`, pageWidth - margin, pageHeight - 10, { align: 'right' });
-
-      doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
-    };
   
-    img.onerror = () => {
-      console.error("Failed to load school logo for PDF generation.");
-      alert("An error occurred while loading the school logo. The PDF could not be generated.");
-    };
+      doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
+    }).catch(error => {
+      console.error("Error generating PDF:", error);
+      alert("Failed to load required images. Could not generate PDF.");
+    });
   };
 
   const badgeVariant = {
