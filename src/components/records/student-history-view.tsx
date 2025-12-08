@@ -163,146 +163,143 @@ export default function StudentHistoryView() {
 
   const handlePdfExport = async () => {
     if (!selectedStudent || !user) return;
-
+  
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
     const primaryColor = '#1e40af';
-    
-    // Function to convert image to base64
-    const toBase64 = (url: string) => fetch(url)
-        .then(response => response.blob())
-        .then(blob => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        }));
-
+  
+    const loadImage = (src: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => resolve(img);
+        img.onerror = (err) => reject(err);
+      });
+    };
+  
     try {
-        const logoDataUrl = await toBase64('/sarc.png') as string;
-
-        // Header
-        const header = () => {
-            // Logo
-            doc.addImage(logoDataUrl, 'PNG', 14, 12, 25, 25);
-            
-            // School Info
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(16);
-            doc.setTextColor(primaryColor);
-            doc.text('SARC Education Foundation', doc.internal.pageSize.getWidth() - 14, 20, { align: 'right' });
-            
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(40);
-            doc.text('Bhimdatta - 06, Aithpur, Kanchanpur', doc.internal.pageSize.getWidth() - 14, 26, { align: 'right' });
-            
-            // Line separator
-            doc.setDrawColor(200);
-            doc.setLineWidth(0.5);
-            doc.line(14, 40, doc.internal.pageSize.getWidth() - 14, 40);
-        };
-        
-        // Footer
-        const footer = () => {
-            const pageCount = doc.internal.getNumberOfPages();
-            doc.setLineWidth(0.5);
-            doc.setDrawColor(200);
-            doc.line(14, doc.internal.pageSize.height - 20, doc.internal.pageSize.getWidth() - 14, doc.internal.pageSize.height - 20);
-            
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            const footerText = `Generated on: ${new Date().toLocaleDateString()}`;
-            doc.text(footerText, 14, doc.internal.pageSize.height - 10);
-            doc.text(`Page ${doc.internal.getCurrentPageInfo().pageNumber} of ${pageCount}`, doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 10, { align: 'right' });
-        };
-        
-        // Report Title
-        doc.setFontSize(14);
+      const logoImg = await loadImage('/sarc.png');
+  
+      const header = (data: any) => {
+        // Logo
+        doc.addImage(logoImg, 'PNG', 14, 12, 25, 25);
+  
+        // School Info
         doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(primaryColor);
+        doc.text('SARC Education Foundation', doc.internal.pageSize.getWidth() - 14, 20, { align: 'right' });
+  
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
         doc.setTextColor(40);
-        doc.text('Student Attendance Report', doc.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
-        
-        // Student Info
-        let startY = 65;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Student Name:`, 14, startY);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`${selectedStudent.name}`, 45, startY);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Class:`, 14, startY + 6);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`${selectedStudent.class} - ${selectedStudent.section}`, 45, startY + 6);
-
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Student ID:`, doc.internal.pageSize.getWidth() - 80, startY);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`${selectedStudent.studentId}`, doc.internal.pageSize.getWidth() - 14, startY, { align: 'right' });
-
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Report Month:`, doc.internal.pageSize.getWidth() - 80, startY + 6);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`${bsMonthYear}`, doc.internal.pageSize.getWidth() - 14, startY + 6, { align: 'right' });
-        
-        // Table Data
-        const tableData = monthlyRecords.map((record, index) => {
-            let statusText: string;
-            switch(record.status) {
-                case 'present': statusText = 'Present'; break;
-                case 'absent': statusText = 'Absent'; break;
-                case 'on_leave': statusText = `On Leave (${record.leaveReason || 'N/A'})`; break;
-                case 'saturday': statusText = 'Saturday'; break;
-                case 'holiday': statusText = `Holiday (${record.holidayName || 'N/A'})`; break;
-                default: statusText = 'N/A';
-            }
-            return [
-                monthlyRecords.length - index,
-                new NepaliDate(record.adDate).format('DD MMMM, YYYY'),
-                statusText,
-            ];
-        });
-
-        doc.autoTable({
-            startY: startY + 16,
-            head: [['S.N.', 'Date (BS)', 'Status']],
-            body: tableData,
-            theme: 'grid',
-            didDrawPage: (data) => {
-                header();
-                footer();
-            },
-            headStyles: {
-                fillColor: primaryColor,
-                textColor: 255,
-                fontStyle: 'bold',
-            },
-            foot: [
-                [{ content: 'Total Summary', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold', fillColor: [230, 230, 230] } }],
-                ['Present', { content: `${stats.present} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
-                ['Absent', { content: `${stats.absent} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
-                ['On Leave', { content: `${stats.onLeave} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
-            ],
-            footStyles: {
-                fillColor: [245, 245, 245],
-                textColor: 40,
-            },
-            margin: { top: 45, bottom: 25 }
-        });
-        
-        // Signature Line
-        let finalY = (doc as any).lastAutoTable.finalY + 20;
-        doc.setFontSize(10);
-        doc.setLineWidth(0.2);
-        doc.line(14, finalY, 70, finalY);
-        doc.text('Class Teacher', 14, finalY + 5);
-
-        doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
-    
+        doc.text('Bhimdatta - 06, Aithpur, Kanchanpur', doc.internal.pageSize.getWidth() - 14, 26, { align: 'right' });
+  
+        // Line separator
+        doc.setDrawColor(200);
+        doc.setLineWidth(0.5);
+        doc.line(14, 40, doc.internal.pageSize.getWidth() - 14, 40);
+      };
+  
+      const footer = (data: any) => {
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(200);
+        doc.line(14, doc.internal.pageSize.height - 20, doc.internal.pageSize.getWidth() - 14, doc.internal.pageSize.height - 20);
+  
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        const footerText = `Generated on: ${new Date().toLocaleDateString()}`;
+        doc.text(footerText, 14, doc.internal.pageSize.height - 10);
+        doc.text(`Page ${data.pageNumber} of ${pageCount}`, doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 10, { align: 'right' });
+      };
+  
+      // Report Title
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40);
+      doc.text('Student Attendance Report', doc.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
+  
+      // Student Info
+      let startY = 65;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Student Name:`, 14, startY);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${selectedStudent.name}`, 45, startY);
+  
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Class:`, 14, startY + 6);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${selectedStudent.class} - ${selectedStudent.section}`, 45, startY + 6);
+  
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Student ID:`, doc.internal.pageSize.getWidth() - 80, startY);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${selectedStudent.studentId}`, doc.internal.pageSize.getWidth() - 14, startY, { align: 'right' });
+  
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Report Month:`, doc.internal.pageSize.getWidth() - 80, startY + 6);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${bsMonthYear}`, doc.internal.pageSize.getWidth() - 14, startY + 6, { align: 'right' });
+  
+      // Table Data
+      const tableData = monthlyRecords.map((record, index) => {
+        let statusText: string;
+        switch(record.status) {
+            case 'present': statusText = 'Present'; break;
+            case 'absent': statusText = 'Absent'; break;
+            case 'on_leave': statusText = `On Leave (${record.leaveReason || 'N/A'})`; break;
+            case 'saturday': statusText = 'Saturday'; break;
+            case 'holiday': statusText = `Holiday (${record.holidayName || 'N/A'})`; break;
+            default: statusText = 'N/A';
+        }
+        return [
+            monthlyRecords.length - index,
+            new NepaliDate(record.adDate).format('DD MMMM, YYYY'),
+            statusText,
+        ];
+      });
+  
+      doc.autoTable({
+        startY: startY + 16,
+        head: [['S.N.', 'Date (BS)', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        didDrawPage: (data) => {
+            header(data);
+            footer(data);
+        },
+        headStyles: {
+            fillColor: primaryColor,
+            textColor: 255,
+            fontStyle: 'bold',
+        },
+        foot: [
+            [{ content: 'Total Summary', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold', fillColor: [230, 230, 230] } }],
+            ['Present', { content: `${stats.present} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
+            ['Absent', { content: `${stats.absent} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
+            ['On Leave', { content: `${stats.onLeave} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
+        ],
+        footStyles: {
+            fillColor: [245, 245, 245],
+            textColor: 40,
+        },
+        margin: { top: 45, bottom: 25 }
+      });
+  
+      // Signature Line
+      let finalY = (doc as any).lastAutoTable.finalY + 20;
+      doc.setFontSize(10);
+      doc.setLineWidth(0.2);
+      doc.line(14, finalY, 70, finalY);
+      doc.text('Class Teacher', 14, finalY + 5);
+  
+      doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
+  
     } catch (error) {
-        console.error("Error generating PDF:", error);
-        alert("Failed to load school logo. Could not generate PDF.");
+      console.error("Error generating PDF:", error);
+      alert("Failed to load school logo. Could not generate PDF.");
     }
   };
 
@@ -491,5 +488,7 @@ export default function StudentHistoryView() {
     </Card>
   );
 }
+
+    
 
     
