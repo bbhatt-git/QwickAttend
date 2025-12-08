@@ -219,9 +219,6 @@ export default function StudentHistoryView() {
       // --- STUDENT INFO ---
       const classStr = selectedStudent.class;
       const sectionStr = selectedStudent.section;
-      const rollNoRegex = new RegExp(`^${sectionStr.substring(0, 2)}${classStr}(\\d+)$`, 'i');
-      const match = selectedStudent.studentId.match(rollNoRegex);
-      const rollNo = match ? match[1] : 'N/A';
       
       const infoStartY = 70;
 
@@ -230,7 +227,6 @@ export default function StudentHistoryView() {
           { label: 'Student Name:', value: selectedStudent.name },
           { label: 'Class:', value: classStr },
           { label: 'Section:', value: sectionStr },
-          { label: 'Roll No.:', value: rollNo },
       ];
       
       infoLeft.forEach((item, index) => {
@@ -519,6 +515,8 @@ export default function StudentHistoryView() {
 }
 
 
+
+    
 
     
 
