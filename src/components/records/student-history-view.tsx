@@ -6,6 +6,8 @@ import { useUser, useFirestore } from '@/firebase';
 import { useStudentData } from '@/context/student-provider';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import type { Student, AttendanceRecord, Holiday } from '@/lib/types';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import {
   Card,
   CardContent,
@@ -23,7 +25,7 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight, CalendarOff, FileText } from 'lucide-react';
+import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight, CalendarOff, FileText, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
@@ -40,6 +42,11 @@ type MonthlyRecord = {
   holidayName?: string;
   leaveReason?: string;
 };
+
+// Extend jsPDF with autoTable
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: any) => jsPDF;
+}
 
 export default function StudentHistoryView() {
   const { user } = useUser();
@@ -153,6 +160,80 @@ export default function StudentHistoryView() {
     const absent = monthlyRecords.filter(r => r.status === 'absent').length;
     return { present, onLeave, absent };
   }, [monthlyRecords]);
+
+  const handlePdfExport = () => {
+    if (!selectedStudent) return;
+
+    const doc = new jsPDF() as jsPDFWithAutoTable;
+    const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text('QwickAttend - Attendance Report', 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+
+    // Student Info
+    const studentInfo = `
+Student: ${selectedStudent.name}
+Student ID: ${selectedStudent.studentId}
+Class: ${selectedStudent.class} | Section: ${selectedStudent.section}
+Report for: ${bsMonthYear}
+`;
+    doc.text(studentInfo, 14, 32);
+
+    // Attendance Summary
+    const summary = `
+Summary:
+- Present: ${stats.present} days
+- Absent: ${stats.absent} days
+- On Leave: ${stats.onLeave} days
+`;
+    doc.text(summary, 130, 32);
+
+
+    const tableData = monthlyRecords.map(record => {
+      let statusText: string;
+      switch(record.status) {
+        case 'present': statusText = 'Present'; break;
+        case 'absent': statusText = 'Absent'; break;
+        case 'on_leave': statusText = `On Leave (${record.leaveReason || 'N/A'})`; break;
+        case 'saturday': statusText = 'Saturday'; break;
+        case 'holiday': statusText = `Holiday (${record.holidayName || 'N/A'})`; break;
+        default: statusText = 'N/A';
+      }
+      return [
+        new NepaliDate(record.adDate).format('dddd, DD MMMM, YYYY'),
+        statusText,
+      ];
+    });
+
+    doc.autoTable({
+        startY: 70,
+        head: [['Date (BS)', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        styles: {
+            font: 'helvetica',
+            fontSize: 10,
+        },
+        headStyles: {
+            fillColor: [22, 163, 74], // A nice green color
+            textColor: 255,
+            fontStyle: 'bold',
+        }
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 10);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, doc.internal.pageSize.height - 10);
+    }
+    
+    doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
+  };
 
 
   const badgeVariant = {
@@ -283,18 +364,21 @@ export default function StudentHistoryView() {
             </div>
 
             <Card>
-                <CardHeader>
-                    <div className='flex justify-between items-center'>
+                <CardHeader className="flex-row items-center justify-between">
+                    <div className='space-y-1'>
                          <CardTitle>Attendance Log</CardTitle>
-                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" onClick={() => handleMonthChange('prev')}>
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
-                            <span className="font-semibold text-center w-32">{new NepaliDate(displayDate).format('MMMM YYYY')}</span>
-                            <Button variant="outline" size="icon" onClick={() => handleMonthChange('next')} disabled={isNextMonthDisabled()}>
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </div>
+                         <CardDescription>{new NepaliDate(displayDate).format('MMMM YYYY')}</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" onClick={() => handleMonthChange('prev')}>
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => handleMonthChange('next')} disabled={isNextMonthDisabled()}>
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button onClick={handlePdfExport}>
+                           <Download className="mr-2 h-4 w-4" /> Download PDF
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent>

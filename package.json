@@ -40,6 +40,8 @@
     "embla-carousel-react": "^8.6.0",
     "firebase": "^11.9.1",
     "html5-qrcode": "^2.3.8",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2",
     "lucide-react": "^0.475.0",
     "nepali-date-converter": "^3.4.0",
     "next": "16.0.7",
@@ -58,6 +60,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/jspdf": "^2.0.0",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.14",
     "@types/qrcode": "^1.5.5",
