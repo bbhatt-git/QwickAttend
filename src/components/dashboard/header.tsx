@@ -19,6 +19,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { navItems } from '@/lib/nav-items';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import Footer from '../common/footer';
 
 
 export default function Header() {
@@ -66,6 +67,9 @@ export default function Header() {
                     )
                 })}
               </nav>
+               <div className="mt-auto">
+                <Footer />
+              </div>
             </SheetContent>
           </Sheet>
       <div className="w-full flex-1">

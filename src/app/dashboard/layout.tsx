@@ -7,7 +7,6 @@ import Header from '@/components/dashboard/header';
 import MainSidebar from '@/components/dashboard/main-sidebar';
 import { Loader2 } from 'lucide-react';
 import { Suspense, useEffect } from 'react';
-import Footer from '@/components/common/footer';
 import { StudentProvider } from '@/context/student-provider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

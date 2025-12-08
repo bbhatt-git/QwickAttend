@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { navItems } from '@/lib/nav-items';
 import { cn } from '@/lib/utils';
+import Footer from '../common/footer';
 
 export default function MainSidebar() {
   const pathname = usePathname();
@@ -21,7 +22,7 @@ export default function MainSidebar() {
               <span>QwickAttend</span>
             </Link>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 overflow-auto py-2">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
@@ -40,6 +41,9 @@ export default function MainSidebar() {
                 )
               })}
             </nav>
+          </div>
+          <div className="mt-auto p-4">
+            <Footer />
           </div>
         </div>
       </div>
