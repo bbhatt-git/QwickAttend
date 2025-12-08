@@ -165,11 +165,11 @@ export default function StudentHistoryView() {
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
-    const primaryColor = '#1e40af';
+    const primaryColor = '#1e40af'; 
     
     const imageUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sarc.png';
     const img = new Image();
-    img.crossOrigin = "Anonymous"; // This is important for loading images from other domains
+    img.crossOrigin = "Anonymous";
     img.src = imageUrl;
 
     img.onload = () => {
@@ -238,7 +238,8 @@ export default function StudentHistoryView() {
         doc.text(`${bsMonthYear}`, doc.internal.pageSize.getWidth() - 14, startY + 5, { align: 'right' });
     
         // Table Data
-        const tableData = monthlyRecords.map((record, index) => {
+        const recordsForPdf = [...monthlyRecords].reverse();
+        const tableData = recordsForPdf.map((record, index) => {
             let statusText: string;
             switch(record.status) {
                 case 'present': statusText = 'Present'; break;
@@ -249,7 +250,7 @@ export default function StudentHistoryView() {
                 default: statusText = 'N/A';
             }
             return [
-                monthlyRecords.length - index,
+                index + 1,
                 new NepaliDate(record.adDate).format('YYYY-MM-DD'),
                 statusText,
             ];
@@ -299,8 +300,8 @@ export default function StudentHistoryView() {
 
         doc.setFontSize(9);
         doc.setLineWidth(0.2);
-        doc.line(14, finalY, 60, finalY);
-        doc.text('Class Teacher', 14, finalY + 4);
+        doc.line(doc.internal.pageSize.getWidth() - 60, finalY, doc.internal.pageSize.getWidth() - 14, finalY);
+        doc.text('Class Teacher', doc.internal.pageSize.getWidth() - 14, finalY + 4, { align: 'right' });
     
         doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
     };
