@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -165,7 +166,7 @@ export default function StudentHistoryView() {
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
-    const primaryColor = '#1e40af'; 
+    const primaryColor = '#4F46E5'; // Indigo from theme
     
     const imageUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sarc.png';
     const img = new Image();
@@ -264,7 +265,6 @@ export default function StudentHistoryView() {
               cellPadding: 3,
             },
             didDrawPage: (data) => {
-                // We call header/footer here as well to ensure they appear on all pages
                 header(data);
                 footer(data);
             },
@@ -274,11 +274,18 @@ export default function StudentHistoryView() {
         // Signature Line
         let finalY = (doc as any).lastAutoTable.finalY || pageHeight - 40;
         finalY += 20; // Add space after table
-
+        
+        const signatureX = doc.internal.pageSize.getWidth() - 14;
+        
         doc.setFontSize(9);
         doc.setLineWidth(0.2);
-        doc.line(doc.internal.pageSize.getWidth() - 60, finalY, doc.internal.pageSize.getWidth() - 14, finalY);
-        doc.text('Class Teacher', doc.internal.pageSize.getWidth() - 14, finalY + 4, { align: 'right' });
+        doc.line(signatureX - 56, finalY, signatureX, finalY);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Bhagwat Dev Bhatt', signatureX, finalY + 5, { align: 'right' });
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text('Program Coordinator', signatureX, finalY + 9, { align: 'right' });
+        doc.text('SARC Education Foundation', signatureX, finalY + 13, { align: 'right' });
     
         doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
     };
