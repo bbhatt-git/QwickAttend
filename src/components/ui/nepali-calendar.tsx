@@ -12,13 +12,6 @@ export interface DateRange {
   to?: NepaliDate;
 }
 
-interface NepaliCalendarProps {
-  mode?: "single" | "range";
-  value?: NepaliDate | DateRange;
-  onSelect?: (date: NepaliDate | DateRange | undefined) => void;
-  numberOfMonths?: number;
-}
-
 const isSameDate = (date1?: NepaliDate, date2?: NepaliDate, unit: 'day' | 'month' | 'year' = 'day'): boolean => {
     if (!date1 || !date2) return false;
     if (unit === 'day') {
@@ -60,9 +53,10 @@ const MonthView = ({
     const daysInMonth = new NepaliDate(year, month + 1, 0).getDate();
 
     const isDateInRange = (date: NepaliDate, range?: DateRange) => {
-        if (!range?.from || !range.to) return false;
-        const start = range.from < range.to ? range.from : range.to;
-        const end = range.from > range.to ? range.from : range.to;
+        if (!range?.from) return false;
+        const to = range.to || range.from;
+        const start = range.from < to ? range.from : to;
+        const end = range.from > to ? range.from : to;
         return date >= start && date <= end;
     };
     
@@ -89,8 +83,8 @@ const MonthView = ({
         let isInRange = false;
         let isInHoverRange = false;
 
-        if (mode === 'single' && value) {
-            isSelected = isSameDate((value as NepaliDate), currentDate, 'day');
+        if (mode === 'single' && value && value instanceof NepaliDate) {
+            isSelected = isSameDate(value, currentDate, 'day');
         } else if (mode === 'range' && value) {
             const range = value as DateRange;
             isRangeStart = !!range.from && isSameDate(range.from, currentDate, 'day');
@@ -115,14 +109,15 @@ const MonthView = ({
                 !isSelected && !isToday && !isDisabled && "hover:bg-accent hover:text-accent-foreground",
                 
                 // Range-specific styles
-                mode === 'range' && isInRange && "bg-primary/20 text-primary-foreground rounded-none",
-                mode === 'range' && isInHoverRange && !isInRange && "bg-primary/10 rounded-none",
-                mode === 'range' && isRangeStart && "bg-primary text-primary-foreground rounded-l-full rounded-r-none hover:bg-primary hover:text-primary-foreground",
-                mode === 'range' && isRangeEnd && "bg-primary text-primary-foreground rounded-r-full rounded-l-none hover:bg-primary hover:text-primary-foreground",
-                mode === 'range' && isRangeStart && isRangeEnd && "rounded-full",
+                mode === 'range' && isInRange && "bg-accent text-accent-foreground rounded-none",
+                mode === 'range' && isInHoverRange && !isInRange && "bg-accent/50 rounded-none",
+
+                (mode === 'range' && isRangeStart) && "bg-primary text-primary-foreground rounded-l-md rounded-r-none hover:bg-primary hover:text-primary-foreground",
+                (mode === 'range' && isRangeEnd) && "bg-primary text-primary-foreground rounded-r-md rounded-l-none hover:bg-primary hover:text-primary-foreground",
+                (mode === 'range' && isRangeStart && isRangeEnd) && "rounded-md",
                 
                 // Single-specific styles
-                mode === 'single' && isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                mode === 'single' && isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground rounded-md",
               )}
             >
               {i}
@@ -136,8 +131,8 @@ const MonthView = ({
                 {viewDate.format("MMMM YYYY")}
             </div>
             <div className="grid grid-cols-7">
-                {["S", "M", "T", "W", "T", "F", "S"].map(day => (
-                    <div key={day} className="text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center">
+                {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
+                    <div key={`${day}-${i}`} className="text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center">
                         {day}
                     </div>
                 ))}
