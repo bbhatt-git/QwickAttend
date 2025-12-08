@@ -12,7 +12,7 @@ import {
 import { Button } from '../ui/button';
 
 export default function Footer() {
-  const appVersion = process.env.npm_package_version || "1.0.0";
+  const appVersion = "1.0.0";
   return (
     <footer className="border-t pt-4">
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-0 text-center text-sm text-muted-foreground sm:flex-row">
