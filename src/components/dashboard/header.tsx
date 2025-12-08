@@ -53,7 +53,7 @@ export default function Header() {
               </div>
               <nav className="grid gap-2 text-lg font-medium p-6 pt-0">
                 {navItems.map((item) => {
-                    const isActive = pathname.startsWith(item.href);
+                    const isActive = item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href);
                     return (
                         <Link
                         key={item.href}
