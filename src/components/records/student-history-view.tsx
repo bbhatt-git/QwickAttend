@@ -208,6 +208,8 @@ export default function StudentHistoryView() {
             doc.text(`Page ${data.pageNumber} of ${pageCount}`, doc.internal.pageSize.width - 14, pageHeight - 10, { align: 'right' });
         };
     
+        header(null);
+
         // Report Title
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
@@ -216,16 +218,16 @@ export default function StudentHistoryView() {
     
         // Student Info
         let startY = 50;
-        doc.setFontSize(9);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.text(`Student Name:`, 14, startY);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${selectedStudent.name}`, 42, startY);
+        doc.text(`${selectedStudent.name}`, 45, startY);
     
         doc.setFont('helvetica', 'normal');
-        doc.text(`Class:`, 14, startY + 5);
+        doc.text(`Class:`, 14, startY + 7);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${selectedStudent.class} - ${selectedStudent.section}`, 42, startY + 5);
+        doc.text(`${selectedStudent.class} - ${selectedStudent.section}`, 45, startY + 7);
     
         doc.setFont('helvetica', 'normal');
         doc.text(`Student ID:`, doc.internal.pageSize.getWidth() - 70, startY);
@@ -233,38 +235,24 @@ export default function StudentHistoryView() {
         doc.text(`${selectedStudent.studentId}`, doc.internal.pageSize.getWidth() - 14, startY, { align: 'right' });
     
         doc.setFont('helvetica', 'normal');
-        doc.text(`Report Month:`, doc.internal.pageSize.getWidth() - 70, startY + 5);
+        doc.text(`Report Month:`, doc.internal.pageSize.getWidth() - 70, startY + 7);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${bsMonthYear}`, doc.internal.pageSize.getWidth() - 14, startY + 5, { align: 'right' });
+        doc.text(`${bsMonthYear}`, doc.internal.pageSize.getWidth() - 14, startY + 7, { align: 'right' });
     
-        // Table Data
-        const recordsForPdf = [...monthlyRecords].reverse();
-        const tableData = recordsForPdf.map((record, index) => {
-            let statusText: string;
-            switch(record.status) {
-                case 'present': statusText = 'Present'; break;
-                case 'absent': statusText = 'Absent'; break;
-                case 'on_leave': statusText = `On Leave (${record.leaveReason || 'N/A'})`; break;
-                case 'saturday': statusText = 'Saturday'; break;
-                case 'holiday': statusText = `Holiday (${record.holidayName || 'N/A'})`; break;
-                default: statusText = 'N/A';
-            }
-            return [
-                index + 1,
-                new NepaliDate(record.adDate).format('YYYY-MM-DD'),
-                statusText,
-            ];
-        });
-    
+        // Summary Section
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Monthly Attendance Summary', 14, startY + 21);
+
         doc.autoTable({
-            startY: startY + 12,
-            head: [['S.N.', 'Date (BS)', 'Status']],
-            body: tableData,
+            startY: startY + 25,
             theme: 'grid',
-            didDrawPage: (data) => {
-                header(data);
-                footer(data);
-            },
+            head: [['Status', 'Total Days']],
+            body: [
+                ['Total Present', `${stats.present} days`],
+                ['Total Absent', `${stats.absent} days`],
+                ['Total On Leave', `${stats.onLeave} days`],
+            ],
             headStyles: {
                 fillColor: primaryColor,
                 textColor: 255,
@@ -272,31 +260,20 @@ export default function StudentHistoryView() {
                 fontSize: 9,
             },
             styles: {
-              fontSize: 8,
-              cellPadding: 2,
+              fontSize: 9,
+              cellPadding: 3,
             },
-            foot: [
-                [{ content: 'Total Summary', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold', fillColor: [230, 230, 230] } }],
-                ['Present', { content: `${stats.present} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
-                ['Absent', { content: `${stats.absent} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
-                ['On Leave', { content: `${stats.onLeave} days`, colSpan: 2, styles: { fontStyle: 'bold' } }],
-            ],
-            footStyles: {
-                fillColor: [245, 245, 245],
-                textColor: 40,
-                fontSize: 8,
+            didDrawPage: (data) => {
+                // We call header/footer here as well to ensure they appear on all pages
+                header(data);
+                footer(data);
             },
             margin: { top: 35, bottom: 25 }
         });
     
         // Signature Line
-        let finalY = (doc as any).lastAutoTable.finalY;
-        if (finalY > pageHeight - 40) {
-            doc.addPage();
-            finalY = 20;
-        } else {
-            finalY += 15;
-        }
+        let finalY = (doc as any).lastAutoTable.finalY || pageHeight - 40;
+        finalY += 20; // Add space after table
 
         doc.setFontSize(9);
         doc.setLineWidth(0.2);
