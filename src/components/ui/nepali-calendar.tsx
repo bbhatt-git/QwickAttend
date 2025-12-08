@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 export interface DateRange {
-  from: NepaliDate;
-  to: NepaliDate;
+  from?: NepaliDate;
+  to?: NepaliDate;
 }
 
 interface NepaliCalendarProps {
@@ -17,6 +17,24 @@ interface NepaliCalendarProps {
   value?: NepaliDate | DateRange;
   onSelect?: (date: NepaliDate | DateRange | undefined) => void;
 }
+
+const isSameDate = (date1: NepaliDate, date2: NepaliDate, unit: 'day' | 'month' | 'year' = 'day'): boolean => {
+    if (!date1 || !date2) return false;
+    if (unit === 'day') {
+      return date1.getYear() === date2.getYear() &&
+             date1.getMonth() === date2.getMonth() &&
+             date1.getDate() === date2.getDate();
+    }
+    if (unit === 'month') {
+      return date1.getYear() === date2.getYear() &&
+             date1.getMonth() === date2.getMonth();
+    }
+    if (unit === 'year') {
+      return date1.getYear() === date2.getYear();
+    }
+    return false;
+};
+
 
 export function NepaliCalendar({ mode = "single", value, onSelect }: NepaliCalendarProps) {
   const [viewDate, setViewDate] = React.useState(
@@ -86,7 +104,7 @@ export function NepaliCalendar({ mode = "single", value, onSelect }: NepaliCalen
 
     for (let i = 1; i <= daysInMonth; i++) {
       const currentDate = new NepaliDate(year, month, i);
-      const isToday = today.isSame(currentDate, 'day');
+      const isToday = isSameDate(today, currentDate, 'day');
       const isDisabled = currentDate.toJsDate() > new Date() && !isToday;
 
       let isSelected = false;
@@ -96,11 +114,11 @@ export function NepaliCalendar({ mode = "single", value, onSelect }: NepaliCalen
       let isInHoverRange = false;
 
       if (mode === 'single' && value) {
-        isSelected = (value as NepaliDate).isSame(currentDate, 'day');
+        isSelected = isSameDate((value as NepaliDate), currentDate, 'day');
       } else if (mode === 'range' && value) {
         const range = value as DateRange;
-        isRangeStart = range.from?.isSame(currentDate, 'day');
-        isRangeEnd = range.to?.isSame(currentDate, 'day');
+        isRangeStart = !!range.from && isSameDate(range.from, currentDate, 'day');
+        isRangeEnd = !!range.to && isSameDate(range.to, currentDate, 'day');
         isSelected = isRangeStart || isRangeEnd;
         isInRange = isDateInRange(currentDate, range);
         isInHoverRange = isDateHovered(currentDate, range);

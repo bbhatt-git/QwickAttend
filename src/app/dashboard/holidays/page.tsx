@@ -82,6 +82,14 @@ export default function HolidaysPage() {
 
   const holidayType = form.watch('holidayType');
 
+  const isSameDate = (date1?: NepaliDate, date2?: NepaliDate) => {
+    if (!date1 || !date2) return false;
+    return date1.getYear() === date2.getYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
+  };
+
+
   const onSubmit = async (values: z.infer<typeof holidayFormSchema>) => {
     if (!user) return;
     
@@ -110,6 +118,7 @@ export default function HolidaysPage() {
       interval.forEach(day => {
           const newDocRef = doc(holidaysCollection);
           const holidayData: any = {
+              id: newDocRef.id,
               teacherId: user.uid,
               name: values.name,
               date: format(day, 'yyyy-MM-dd'),
@@ -313,12 +322,12 @@ export default function HolidaysPage() {
                                 variant={'outline'}
                                 className={cn(
                                     'w-full pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
+                                    !field.value?.from && 'text-muted-foreground'
                                 )}
                                 >
                                 {field.value?.from ? (
                                     field.value.to ? (
-                                    (field.value.to as any).isSame(field.value.from, 'day') ? (
+                                     isSameDate(field.value.from, field.value.to) ? (
                                         `BS: ${field.value.from.format('DD, MMMM YYYY')}`
                                     ) : (
                                         `BS: ${field.value.from.format('DD, MMMM')} - ${field.value.to.format('DD, MMMM YYYY')}`
@@ -421,5 +430,3 @@ export default function HolidaysPage() {
     </div>
   );
 }
-
-    
