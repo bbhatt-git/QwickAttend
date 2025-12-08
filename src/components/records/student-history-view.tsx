@@ -25,10 +25,9 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight, CalendarOff, FileText, Download } from 'lucide-react';
+import { ChevronsUpDown, Check, UserSearch, Loader2, UserCheck, UserX, UserMinus, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import NepaliDate from 'nepali-date-converter';
@@ -116,8 +115,8 @@ export default function StudentHistoryView() {
             continue; // Skip future dates
         }
         
-        const adDateStr = format(adDate, 'yyyy-MM-dd');
-        
+        const adDateStr = new Date(adDate.getTime() - (adDate.getTimezoneOffset() * 60000 )).toISOString().split("T")[0];
+
         const holidayName = holidayDateSet.get(adDateStr);
         if (holidayName) {
             records.push({
@@ -168,11 +167,10 @@ export default function StudentHistoryView() {
     const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
     const primaryColor = '#4F46E5'; // Indigo from theme
     
-    // URL of the image hosted on GitHub
     const imageUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sarc.png';
   
     const img = new Image();
-    img.crossOrigin = "Anonymous"; // Important for cross-origin images
+    img.crossOrigin = "Anonymous";
     img.src = imageUrl;
   
     img.onload = () => {
@@ -209,6 +207,12 @@ export default function StudentHistoryView() {
         doc.setTextColor(150);
         const footerText = `Generated on: ${new Date().toLocaleDateString()}`;
         doc.text(footerText, 14, pageHeight - 10);
+
+        doc.setFont('helvetica', 'italic');
+        const madeWithText = "Made with QwickAttend";
+        doc.text(madeWithText, doc.internal.pageSize.getWidth() / 2, pageHeight - 10, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+
         doc.text(`Page ${data.pageNumber} of ${pageCount}`, doc.internal.pageSize.width - 14, pageHeight - 10, { align: 'right' });
       };
   
@@ -280,7 +284,6 @@ export default function StudentHistoryView() {
           cellPadding: 2,
         },
         didDrawPage: (data) => {
-          // We call header() at the start, so only call footer here.
           footer(data);
         },
         margin: { top: 35, bottom: 25 },
@@ -314,7 +317,6 @@ export default function StudentHistoryView() {
       alert("An error occurred while loading the school logo. The PDF could not be generated.");
     };
   };
-
 
   const badgeVariant = {
     present: 'default',
@@ -476,10 +478,10 @@ export default function StudentHistoryView() {
                                         <div className='flex flex-col'>
                                             <span className="font-medium">{new NepaliDate(record.adDate).format('DD MMMM, YYYY')}</span>
                                             {record.status === 'holiday' && record.holidayName && (
-                                                <span className="text-xs text-muted-foreground flex items-center gap-1"><CalendarOff className="h-3 w-3" />{record.holidayName}</span>
+                                                <span className="text-xs text-muted-foreground">Holiday: {record.holidayName}</span>
                                             )}
                                             {record.status === 'on_leave' && record.leaveReason && (
-                                                <span className="text-xs text-muted-foreground flex items-center gap-1"><FileText className="h-3 w-3" />{record.leaveReason}</span>
+                                                <span className="text-xs text-muted-foreground">Reason: {record.leaveReason}</span>
                                             )}
                                         </div>
                                         <Badge variant={badgeVariant[record.status]}>{statusText[record.status]}</Badge>
@@ -501,3 +503,4 @@ export default function StudentHistoryView() {
   );
 }
 
+    
