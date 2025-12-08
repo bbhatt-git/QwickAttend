@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 import { format, eachDayOfInterval } from 'date-fns';
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { NepaliCalendar, type DateRange } from '@/components/ui/nepali-calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarIcon, PlusCircle, Trash2, Loader2, CalendarOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -34,12 +34,28 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const holidayFormSchema = z.object({
   name: z.string().min(2, 'Holiday name must be at least 2 characters.'),
-  dateRange: z.custom<DateRange>(val => val && val.from, {
-    message: 'A date or date range is required.',
-  }),
+  holidayType: z.enum(['single', 'range']),
+  singleDate: z.instanceof(NepaliDate).optional(),
+  dateRange: z.custom<DateRange>().optional(),
+}).superRefine((data, ctx) => {
+    if (data.holidayType === 'single' && !data.singleDate) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['singleDate'],
+            message: 'A date is required for a single day holiday.',
+        });
+    }
+    if (data.holidayType === 'range' && (!data.dateRange || !data.dateRange.from)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['dateRange'],
+            message: 'A date range is required for multiple day holidays.',
+        });
+    }
 });
 
 
@@ -60,23 +76,35 @@ export default function HolidaysPage() {
     resolver: zodResolver(holidayFormSchema),
     defaultValues: {
       name: '',
+      holidayType: 'single',
     },
   });
 
+  const holidayType = form.watch('holidayType');
+
   const onSubmit = async (values: z.infer<typeof holidayFormSchema>) => {
     if (!user) return;
-    const { from, to } = values.dateRange;
-    const startDate = from.toJsDate();
-    // If 'to' is not provided (single date selection), use 'from' as the end date
-    const endDate = (to || from).toJsDate();
     
+    let startDate: Date;
+    let endDate: Date;
+
+    if (values.holidayType === 'single' && values.singleDate) {
+        startDate = values.singleDate.toJsDate();
+        endDate = values.singleDate.toJsDate();
+    } else if (values.holidayType === 'range' && values.dateRange?.from) {
+        startDate = values.dateRange.from.toJsDate();
+        endDate = (values.dateRange.to || values.dateRange.from).toJsDate();
+    } else {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please select a valid date or range.' });
+        return;
+    }
+
     try {
       const batch = writeBatch(firestore);
       const holidaysCollection = collection(firestore, `teachers/${user.uid}/holidays`);
       
       const interval = eachDayOfInterval({ start: startDate, end: endDate });
       
-      // If there is more than one day, create a rangeId
       const rangeId = interval.length > 1 ? uuidv4() : undefined;
 
       interval.forEach(day => {
@@ -92,11 +120,10 @@ export default function HolidaysPage() {
           batch.set(newDocRef, holidayData);
       });
       
-
       await batch.commit();
 
       toast({ title: 'Success', description: 'Holiday(s) have been added.' });
-      form.reset({name: '', dateRange: undefined});
+      form.reset({name: '', holidayType: 'single', singleDate: undefined, dateRange: undefined});
       setRefetchTrigger(t => t + 1);
     } catch (error) {
       console.error('Error adding holiday:', error);
@@ -198,53 +225,128 @@ export default function HolidaysPage() {
                     </FormItem>
                   )}
                 />
+                
                 <FormField
                   control={form.control}
-                  name="dateRange"
+                  name="holidayType"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Date or Date Range</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={'outline'}
-                              className={cn(
-                                'w-full pl-3 text-left font-normal',
-                                !field.value && 'text-muted-foreground'
-                              )}
-                            >
-                              {field.value?.from ? (
-                                field.value.to ? (
-                                  (field.value.to as any).isSame(field.value.from, 'day') ? (
-                                    `BS: ${field.value.from.format('DD, MMMM YYYY')}`
-                                  ) : (
-                                    `BS: ${field.value.from.format('DD, MMMM')} - ${field.value.to.format('DD, MMMM YYYY')}`
-                                  )
-                                ) : (
-                                  `BS: ${field.value.from.format('DD, MMMM YYYY')}`
-                                )
-                              ) : (
-                                <span>Pick a date or range</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                           <NepaliCalendar
-                            mode="range"
-                            value={field.value}
-                            onSelect={(range) => {
-                                field.onChange(range)
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem className="space-y-3">
+                      <FormLabel>Holiday Type</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={(value: 'single' | 'range') => {
+                            field.onChange(value);
+                            form.setValue('singleDate', undefined);
+                            form.setValue('dateRange', undefined);
+                          }}
+                          defaultValue={field.value}
+                          className="flex space-x-4"
+                        >
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="single" />
+                            </FormControl>
+                            <FormLabel className="font-normal">Single Day</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="range" />
+                            </FormControl>
+                            <FormLabel className="font-normal">Multiple Days</FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {holidayType === 'single' ? (
+                     <FormField
+                        control={form.control}
+                        name="singleDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Date</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant={'outline'}
+                                    className={cn(
+                                        'w-full pl-3 text-left font-normal',
+                                        !field.value && 'text-muted-foreground'
+                                    )}
+                                    >
+                                    {field.value ? (
+                                        `BS: ${field.value.format('DD, MMMM YYYY')}`
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <NepaliCalendar
+                                    mode="single"
+                                    value={field.value}
+                                    onSelect={(date) => field.onChange(date)}
+                                />
+                                </PopoverContent>
+                            </Popover>
+                             <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                ) : (
+                    <FormField
+                    control={form.control}
+                    name="dateRange"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Date Range</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={'outline'}
+                                className={cn(
+                                    'w-full pl-3 text-left font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                )}
+                                >
+                                {field.value?.from ? (
+                                    field.value.to ? (
+                                    (field.value.to as any).isSame(field.value.from, 'day') ? (
+                                        `BS: ${field.value.from.format('DD, MMMM YYYY')}`
+                                    ) : (
+                                        `BS: ${field.value.from.format('DD, MMMM')} - ${field.value.to.format('DD, MMMM YYYY')}`
+                                    )
+                                    ) : (
+                                    `BS: ${field.value.from.format('DD, MMMM YYYY')}`
+                                    )
+                                ) : (
+                                    <span>Pick a date range</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <NepaliCalendar
+                                mode="range"
+                                value={field.value}
+                                onSelect={(range) => field.onChange(range)}
+                            />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                )}
+                
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -319,3 +421,5 @@ export default function HolidaysPage() {
     </div>
   );
 }
+
+    
