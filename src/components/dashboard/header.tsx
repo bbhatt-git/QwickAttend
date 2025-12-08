@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   Menu,
-  School
+  QrCode
 } from 'lucide-react';
 import { UserNav } from './user-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -43,11 +43,11 @@ export default function Header() {
               </SheetHeader>
               <nav className="grid gap-2 text-lg font-medium">
                 <Link
-                  href="#"
-                  className="flex items-center gap-2 text-lg font-semibold"
+                  href="/dashboard"
+                  className="flex items-center gap-2 text-lg font-bold"
                 >
-                  <School className="h-6 w-6" />
-                  <span className="sr-only">QwickAttend</span>
+                  <QrCode className="h-6 w-6" />
+                  <span>QwickAttend</span>
                 </Link>
                 {navItems.map((item) => {
                     const isActive = pathname === item.href;
