@@ -166,31 +166,71 @@ export default function StudentHistoryView() {
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
+    const primaryColor = '#1e40af'; // Example: a shade of blue
+
+    // Header
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryColor);
+    doc.text('QwickAttend Report', 105, 20, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setTextColor(80);
+    doc.text(`Monthly Attendance Summary`, 105, 28, { align: 'center' });
+
+
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(primaryColor);
+    doc.line(14, 35, 196, 35); // line under header
+
+    // Two-column layout for details
+    const col1X = 14;
+    const col2X = 105;
+    let currentY = 45;
+
+    // Student Details Column
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40);
+    doc.text('STUDENT DETAILS', col1X, currentY);
+    currentY += 6;
+
+    doc.setFont('helvetica', 'normal');
+    const addDetailRow = (label: string, value: string) => {
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${label}:`, col1X, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(value, col1X + 30, currentY);
+        currentY += 6;
+    }
     
-    // Title
-    doc.setFontSize(18);
-    doc.text('QwickAttend - Attendance Report', 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
+    addDetailRow('Name', selectedStudent.name);
+    addDetailRow('Student ID', selectedStudent.studentId);
+    addDetailRow('Class', `${selectedStudent.class} - ${selectedStudent.section}`);
+    addDetailRow('Report For', bsMonthYear);
+    
+    // Reset Y for the second column
+    currentY = 45;
 
-    // Student Info
-    const studentInfo = `
-Student: ${selectedStudent.name}
-Student ID: ${selectedStudent.studentId}
-Class: ${selectedStudent.class} | Section: ${selectedStudent.section}
-Report for: ${bsMonthYear}
-`;
-    doc.text(studentInfo, 14, 32);
+    // Attendance Summary Column
+    doc.setFont('helvetica', 'bold');
+    doc.text('ATTENDANCE SUMMARY', col2X, currentY);
+    currentY += 6;
 
-    // Attendance Summary
-    const summary = `
-Summary:
-- Present: ${stats.present} days
-- Absent: ${stats.absent} days
-- On Leave: ${stats.onLeave} days
-`;
-    doc.text(summary, 130, 32);
+    const addSummaryRow = (label: string, value: number, color: string) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(color);
+        doc.text(label, col2X, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(40);
+        doc.text(`: ${value} days`, col2X + 25, currentY);
+        currentY += 6;
+    }
 
+    addSummaryRow('Present', stats.present, '#16a34a'); // Green
+    addSummaryRow('Absent', stats.absent, '#dc2626');   // Red
+    addSummaryRow('On Leave', stats.onLeave, '#f59e0b'); // Amber
+
+    const tableStartY = currentY + 10 > 75 ? currentY + 10 : 75;
 
     const tableData = monthlyRecords.map(record => {
       let statusText: string;
@@ -209,25 +249,32 @@ Summary:
     });
 
     doc.autoTable({
-        startY: 70,
+        startY: tableStartY,
         head: [['Date (BS)', 'Status']],
         body: tableData,
         theme: 'grid',
+        headStyles: {
+            fillColor: primaryColor,
+            textColor: 255,
+            fontStyle: 'bold',
+        },
         styles: {
             font: 'helvetica',
             fontSize: 10,
         },
-        headStyles: {
-            fillColor: [22, 163, 74], // A nice green color
-            textColor: 255,
-            fontStyle: 'bold',
+        alternateRowStyles: {
+            fillColor: 245
         }
     });
 
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(primaryColor);
+        doc.line(14, doc.internal.pageSize.height - 15, 196, doc.internal.pageSize.height - 15);
         doc.setFontSize(8);
+        doc.setTextColor(150);
         doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 10);
         doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, doc.internal.pageSize.height - 10);
     }
