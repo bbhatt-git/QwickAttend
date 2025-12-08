@@ -289,7 +289,7 @@ export default function StudentHistoryView() {
       let finalY = (doc as any).lastAutoTable.finalY + 20;
       const signatureX = pageWidth - margin;
 
-      doc.addImage(signatureDataUrl, 'PNG', signatureX - 60, finalY - 10, 40, 20);
+      doc.addImage(signatureDataUrl, 'PNG', signatureX - 60, finalY - 15, 40, 20);
 
       doc.setLineWidth(0.2);
       doc.line(signatureX - 60, finalY + 15, signatureX, finalY + 15);
@@ -508,3 +508,4 @@ export default function StudentHistoryView() {
     </Card>
   );
 }
+
