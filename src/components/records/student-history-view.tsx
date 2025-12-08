@@ -289,19 +289,23 @@ export default function StudentHistoryView() {
       let finalY = (doc as any).lastAutoTable.finalY + 20;
       const signatureX = pageWidth - margin;
 
-      doc.addImage(signatureDataUrl, 'PNG', signatureX - 60, finalY - 15, 40, 20);
+      // Position the signature image so its bottom touches the line
+      const signatureImageHeight = 20;
+      const signatureLineY = finalY + 15;
+      doc.addImage(signatureDataUrl, 'PNG', signatureX - 60, signatureLineY - signatureImageHeight, 40, signatureImageHeight);
+
 
       doc.setLineWidth(0.2);
-      doc.line(signatureX - 60, finalY + 15, signatureX, finalY + 15);
+      doc.line(signatureX - 60, signatureLineY, signatureX, signatureLineY);
       
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text('Bhagwat Dev Bhatt', signatureX, finalY + 22, { align: 'right' });
+      doc.text('Bhagwat Dev Bhatt', signatureX, signatureLineY + 7, { align: 'right' });
       
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100);
-      doc.text('Program Coordinator', signatureX, finalY + 27, { align: 'right' });
-      doc.text('SARC Education Foundation', signatureX, finalY + 32, { align: 'right' });
+      doc.text('Program Coordinator', signatureX, signatureLineY + 12, { align: 'right' });
+      doc.text('SARC Education Foundation', signatureX, signatureLineY + 17, { align: 'right' });
   
       // --- FOOTER ---
       doc.setDrawColor(220);
@@ -509,3 +513,6 @@ export default function StudentHistoryView() {
   );
 }
 
+
+
+    
