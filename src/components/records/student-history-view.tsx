@@ -32,6 +32,7 @@ import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import NepaliDate from 'nepali-date-converter';
+import logo from '../../../public/sarc.png';
 
 
 type MonthlyRecord = {
@@ -168,19 +169,8 @@ export default function StudentHistoryView() {
     const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
     const primaryColor = '#1e40af';
   
-    const loadImageAsDataUrl = (url: string): Promise<string> => {
-        return fetch(url)
-            .then(response => response.blob())
-            .then(blob => new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            }));
-    };
-  
     try {
-      const logoDataUrl = await loadImageAsDataUrl('/sarc.png');
+      const logoDataUrl = logo.src;
   
       const header = (data: any) => {
         // Logo
@@ -258,7 +248,7 @@ export default function StudentHistoryView() {
         }
         return [
             monthlyRecords.length - index,
-            new NepaliDate(record.adDate).format('DD MMMM, YYYY'),
+            new NepaliDate(record.adDate).format('YYYY-MM-DD'),
             statusText,
         ];
       });
@@ -301,7 +291,7 @@ export default function StudentHistoryView() {
   
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert("Failed to load school logo. Could not generate PDF.");
+      alert("An error occurred while generating the PDF. Please try again.");
     }
   };
 
@@ -464,7 +454,7 @@ export default function StudentHistoryView() {
                                 {monthlyRecords.map(record => (
                                     <li key={record.date} className="flex justify-between items-center p-2 rounded-md bg-muted">
                                         <div className='flex flex-col'>
-                                            <span className="font-medium">{new NepaliDate(record.adDate).format('DD MMMM, YYYY')}</span>
+                                            <span className="font-medium">{new NepaliDate(record.adDate).format('YYYY-MM-DD')}</span>
                                             {record.status === 'holiday' && record.holidayName && (
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1"><CalendarOff className="h-3 w-3" />{record.holidayName}</span>
                                             )}
@@ -490,9 +480,5 @@ export default function StudentHistoryView() {
     </Card>
   );
 }
-
-    
-
-    
 
     
