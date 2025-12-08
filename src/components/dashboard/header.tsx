@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   Menu,
-  QrCode
+  UserCheck
 } from 'lucide-react';
 import { UserNav } from './user-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -46,7 +46,7 @@ export default function Header() {
                   href="/dashboard"
                   className="flex items-center gap-2 text-lg font-bold"
                 >
-                  <QrCode className="h-6 w-6" />
+                  <UserCheck className="h-6 w-6" />
                   <span>QwickAttend</span>
                 </Link>
                 {navItems.map((item) => {
