@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, UserCheck, UserX, UserMinus, Activity } from 'lucide-react';
+import { Users, UserCheck, UserX, UserMinus } from 'lucide-react';
 import WelcomeHeader from '@/components/dashboard/welcome-header';
 
 export default function DashboardPage() {
@@ -61,14 +61,14 @@ export default function DashboardPage() {
   }, [user, firestore]);
 
   const statCards = [
-    { title: 'Total Students', value: stats.total, icon: Users, color: 'text-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-950' },
-    { title: 'Present Today', value: stats.present, icon: UserCheck, color: 'text-green-500', bgColor: 'bg-green-100 dark:bg-green-950' },
-    { title: 'Absent Today', value: stats.absent, icon: UserX, color: 'text-red-500', bgColor: 'bg-red-100 dark:bg-red-950' },
-    { title: 'On Leave', value: stats.onLeave, icon: UserMinus, color: 'text-yellow-500', bgColor: 'bg-yellow-100 dark:bg-yellow-950' },
+    { title: 'Total Students', value: stats.total, icon: Users, color: 'text-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/20' },
+    { title: 'Present Today', value: stats.present, icon: UserCheck, color: 'text-green-500', bgColor: 'bg-green-100 dark:bg-green-900/20' },
+    { title: 'Absent Today', value: stats.absent, icon: UserX, color: 'text-red-500', bgColor: 'bg-red-100 dark:bg-red-900/20' },
+    { title: 'On Leave', value: stats.onLeave, icon: UserMinus, color: 'text-yellow-500', bgColor: 'bg-yellow-100 dark:bg-yellow-900/20' },
   ];
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="space-y-6">
       <WelcomeHeader />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {isLoading ? (
@@ -76,11 +76,10 @@ export default function DashboardPage() {
             <Card key={index}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-6 w-6" />
+                <Skeleton className="h-8 w-8 rounded-lg" />
               </CardHeader>
               <CardContent>
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-3 w-40 mt-1" />
+                <Skeleton className="h-8 w-16 mt-2" />
               </CardContent>
             </Card>
           ))
@@ -91,13 +90,12 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium">
                   {card.title}
                 </CardTitle>
-                <card.icon className={`h-4 w-4 text-muted-foreground ${card.color}`} />
+                <div className={`p-2 rounded-lg ${card.bgColor}`}>
+                    <card.icon className={`h-5 w-5 ${card.color}`} />
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{card.value}</div>
-                <p className="text-xs text-muted-foreground">
-                  {card.title === 'Total Students' ? 'Total registered students' : `students ${card.title.toLowerCase().split(' ')[0]} today`}
-                </p>
               </CardContent>
             </Card>
           ))

@@ -3,7 +3,7 @@
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import React from 'react';
-import { UserPlus } from 'lucide-react';
+import { Fingerprint } from 'lucide-react';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,8 +15,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
       <div className="hidden bg-muted lg:flex lg:items-center lg:justify-center lg:flex-col p-8">
          <div className="flex items-center gap-4 text-primary mb-4">
-          <UserPlus className="h-10 w-10" />
-          <h1 className="text-4xl font-bold">Get Started</h1>
+          <Fingerprint className="h-10 w-10" />
+          <h1 className="text-4xl font-bold">QwickAttend</h1>
         </div>
         <p className="text-center text-muted-foreground max-w-sm">
           Create your account to start managing attendance effortlessly.
