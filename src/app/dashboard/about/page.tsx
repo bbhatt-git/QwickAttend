@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch } from 'lucide-react';
+import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -60,6 +60,34 @@ export default function AboutPage() {
                             </Link>
                         </Button>
                     </div>
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                       <Mail className="h-5 w-5" />
+                        Contact Email
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <a href="mailto:hello@bbhatt.com.np" className="text-primary hover:underline">
+                        hello@bbhatt.com.np
+                    </a>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                       <Phone className="h-5 w-5" />
+                        Contact Phone
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <a href="tel:+9779761184935" className="text-primary hover:underline">
+                        +977 9761184935
+                    </a>
                 </CardContent>
             </Card>
         </div>
