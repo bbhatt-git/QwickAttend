@@ -144,6 +144,13 @@ const MonthView = ({
     );
 };
 
+type NepaliCalendarProps = {
+  mode?: "single" | "range";
+  value?: NepaliDate | DateRange;
+  onSelect?: (date?: NepaliDate | DateRange) => void;
+  numberOfMonths?: number;
+};
+
 
 export function NepaliCalendar({ mode = "single", value, onSelect, numberOfMonths = mode === 'range' ? 2 : 1 }: NepaliCalendarProps) {
   const [viewDate, setViewDate] = React.useState(
@@ -168,19 +175,21 @@ export function NepaliCalendar({ mode = "single", value, onSelect, numberOfMonth
   };
 
   const handleDayClick = (day: NepaliDate) => {
-    if (mode === "single") {
-      onSelect?.(day);
-    } else { // range mode
-      const range = value as DateRange;
-      if (!range?.from || range.to) {
-        onSelect?.({ from: day, to: undefined });
-      } else {
-        if (day < range.from) {
-            onSelect?.({ from: day, to: range.from });
-        } else {
-            onSelect?.({ from: range.from, to: day });
+    if (onSelect) {
+        if (mode === "single") {
+            onSelect(day);
+        } else { // range mode
+            const range = value as DateRange;
+            if (!range?.from || range.to) {
+                onSelect({ from: day, to: undefined });
+            } else {
+                if (day < range.from) {
+                    onSelect({ from: day, to: range.from });
+                } else {
+                    onSelect({ from: range.from, to: day });
+                }
+            }
         }
-      }
     }
   };
   
@@ -191,13 +200,19 @@ export function NepaliCalendar({ mode = "single", value, onSelect, numberOfMonth
   }
 
   return (
-    <div className={cn("p-3 flex gap-4", numberOfMonths === 1 && 'flex-col')}>
-      <div className="relative flex-1">
-        {numberOfMonths > 1 && (
-            <Button variant="outline" size="icon" className="h-7 w-7 absolute left-1 top-1" onClick={handlePrevMonth}>
-                <ChevronLeft className="h-4 w-4" />
-            </Button>
-        )}
+    <div className={cn("p-3 relative", numberOfMonths > 1 && "flex gap-4")}>
+      <div className="absolute top-3 left-3 flex items-center">
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={handlePrevMonth}>
+              <ChevronLeft className="h-4 w-4" />
+          </Button>
+      </div>
+      <div className="absolute top-3 right-3 flex items-center">
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={handleNextMonth}>
+              <ChevronRight className="h-4 w-4" />
+          </Button>
+      </div>
+     
+      <div className={cn("flex", numberOfMonths === 1 && "flex-col")}>
         <MonthView 
             viewDate={viewDate}
             value={value}
@@ -206,14 +221,9 @@ export function NepaliCalendar({ mode = "single", value, onSelect, numberOfMonth
             setHoveredDate={setHoveredDate}
             mode={mode}
         />
-      </div>
 
-     {numberOfMonths > 1 && (
-        <div className="relative flex-1">
-            <Button variant="outline" size="icon" className="h-7 w-7 absolute right-1 top-1" onClick={handleNextMonth}>
-                <ChevronRight className="h-4 w-4" />
-            </Button>
-             <MonthView 
+        {numberOfMonths > 1 && (
+            <MonthView 
                 viewDate={getNextMonthDate(viewDate)}
                 value={value}
                 onDayClick={handleDayClick}
@@ -221,8 +231,8 @@ export function NepaliCalendar({ mode = "single", value, onSelect, numberOfMonth
                 setHoveredDate={setHoveredDate}
                 mode={mode}
             />
-        </div>
-     )}
+        )}
+      </div>
     </div>
   );
 }
