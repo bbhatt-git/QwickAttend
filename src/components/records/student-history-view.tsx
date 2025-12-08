@@ -191,7 +191,7 @@ export default function StudentHistoryView() {
     };
   
     const logoUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sarc.png';
-    const signatureUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sign.png';
+    const signatureUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/pdf_sign.png';
     
     Promise.all([
       loadImageAsDataUrl(logoUrl),
