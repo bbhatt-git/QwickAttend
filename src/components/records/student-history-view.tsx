@@ -173,69 +173,69 @@ export default function StudentHistoryView() {
     img.src = imageUrl;
 
     img.onload = () => {
-        // Now that the image is loaded, generate the PDF
+        const pageHeight = doc.internal.pageSize.getHeight();
         const header = (data: any) => {
             // Logo
-            doc.addImage(img, 'PNG', 14, 12, 25, 25);
+            doc.addImage(img, 'PNG', 14, 10, 20, 20);
     
             // School Info
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(16);
+            doc.setFontSize(14);
             doc.setTextColor(primaryColor);
-            doc.text('SARC Education Foundation', doc.internal.pageSize.getWidth() - 14, 20, { align: 'right' });
+            doc.text('SARC Education Foundation', doc.internal.pageSize.getWidth() - 14, 16, { align: 'right' });
     
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setTextColor(40);
-            doc.text('Bhimdatta - 06, Aithpur, Kanchanpur', doc.internal.pageSize.getWidth() - 14, 26, { align: 'right' });
+            doc.text('Bhimdatta - 06, Aithpur, Kanchanpur', doc.internal.pageSize.getWidth() - 14, 22, { align: 'right' });
     
             // Line separator
             doc.setDrawColor(200);
             doc.setLineWidth(0.5);
-            doc.line(14, 40, doc.internal.pageSize.getWidth() - 14, 40);
+            doc.line(14, 32, doc.internal.pageSize.getWidth() - 14, 32);
         };
     
         const footer = (data: any) => {
             const pageCount = doc.internal.getNumberOfPages();
             doc.setLineWidth(0.5);
             doc.setDrawColor(200);
-            doc.line(14, doc.internal.pageSize.height - 20, doc.internal.pageSize.getWidth() - 14, doc.internal.pageSize.height - 20);
+            doc.line(14, pageHeight - 20, doc.internal.pageSize.getWidth() - 14, pageHeight - 20);
     
             doc.setFontSize(8);
             doc.setTextColor(150);
             const footerText = `Generated on: ${new Date().toLocaleDateString()}`;
-            doc.text(footerText, 14, doc.internal.pageSize.height - 10);
-            doc.text(`Page ${data.pageNumber} of ${pageCount}`, doc.internal.pageSize.width - 14, doc.internal.pageSize.height - 10, { align: 'right' });
+            doc.text(footerText, 14, pageHeight - 10);
+            doc.text(`Page ${data.pageNumber} of ${pageCount}`, doc.internal.pageSize.width - 14, pageHeight - 10, { align: 'right' });
         };
     
         // Report Title
-        doc.setFontSize(14);
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(40);
-        doc.text('Student Attendance Report', doc.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
+        doc.text('Student Attendance Report', doc.internal.pageSize.getWidth() / 2, 42, { align: 'center' });
     
         // Student Info
-        let startY = 65;
-        doc.setFontSize(10);
+        let startY = 50;
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.text(`Student Name:`, 14, startY);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${selectedStudent.name}`, 45, startY);
+        doc.text(`${selectedStudent.name}`, 42, startY);
     
         doc.setFont('helvetica', 'normal');
-        doc.text(`Class:`, 14, startY + 6);
+        doc.text(`Class:`, 14, startY + 5);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${selectedStudent.class} - ${selectedStudent.section}`, 45, startY + 6);
+        doc.text(`${selectedStudent.class} - ${selectedStudent.section}`, 42, startY + 5);
     
         doc.setFont('helvetica', 'normal');
-        doc.text(`Student ID:`, doc.internal.pageSize.getWidth() - 80, startY);
+        doc.text(`Student ID:`, doc.internal.pageSize.getWidth() - 70, startY);
         doc.setFont('helvetica', 'bold');
         doc.text(`${selectedStudent.studentId}`, doc.internal.pageSize.getWidth() - 14, startY, { align: 'right' });
     
         doc.setFont('helvetica', 'normal');
-        doc.text(`Report Month:`, doc.internal.pageSize.getWidth() - 80, startY + 6);
+        doc.text(`Report Month:`, doc.internal.pageSize.getWidth() - 70, startY + 5);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${bsMonthYear}`, doc.internal.pageSize.getWidth() - 14, startY + 6, { align: 'right' });
+        doc.text(`${bsMonthYear}`, doc.internal.pageSize.getWidth() - 14, startY + 5, { align: 'right' });
     
         // Table Data
         const tableData = monthlyRecords.map((record, index) => {
@@ -256,7 +256,7 @@ export default function StudentHistoryView() {
         });
     
         doc.autoTable({
-            startY: startY + 16,
+            startY: startY + 12,
             head: [['S.N.', 'Date (BS)', 'Status']],
             body: tableData,
             theme: 'grid',
@@ -268,6 +268,11 @@ export default function StudentHistoryView() {
                 fillColor: primaryColor,
                 textColor: 255,
                 fontStyle: 'bold',
+                fontSize: 9,
+            },
+            styles: {
+              fontSize: 8,
+              cellPadding: 2,
             },
             foot: [
                 [{ content: 'Total Summary', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold', fillColor: [230, 230, 230] } }],
@@ -278,16 +283,24 @@ export default function StudentHistoryView() {
             footStyles: {
                 fillColor: [245, 245, 245],
                 textColor: 40,
+                fontSize: 8,
             },
-            margin: { top: 45, bottom: 25 }
+            margin: { top: 35, bottom: 25 }
         });
     
         // Signature Line
-        let finalY = (doc as any).lastAutoTable.finalY + 20;
-        doc.setFontSize(10);
+        let finalY = (doc as any).lastAutoTable.finalY;
+        if (finalY > pageHeight - 40) {
+            doc.addPage();
+            finalY = 20;
+        } else {
+            finalY += 15;
+        }
+
+        doc.setFontSize(9);
         doc.setLineWidth(0.2);
-        doc.line(14, finalY, 70, finalY);
-        doc.text('Class Teacher', 14, finalY + 5);
+        doc.line(14, finalY, 60, finalY);
+        doc.text('Class Teacher', 14, finalY + 4);
     
         doc.save(`attendance_report_${selectedStudent.studentId}_${bsMonthYear}.pdf`);
     };
