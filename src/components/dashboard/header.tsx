@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   Menu,
-  UserCheck
+  Fingerprint
 } from 'lucide-react';
 import { UserNav } from './user-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -47,7 +47,7 @@ export default function Header() {
                   href="/dashboard"
                   className="flex items-center gap-2 text-lg font-bold"
                 >
-                  <UserCheck className="h-6 w-6" />
+                  <Fingerprint className="h-6 w-6" />
                   <span className='font-extrabold tracking-tight'>QwickAttend</span>
                 </Link>
               </div>
@@ -59,7 +59,8 @@ export default function Header() {
                         key={item.href}
                         href={item.href}
                         className={cn(
-                            "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
+                            "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground",
+                            !isActive && "hover:text-foreground",
                             isActive && "bg-muted text-foreground"
                         )}
                         >
