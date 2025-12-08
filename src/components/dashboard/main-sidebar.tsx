@@ -14,7 +14,7 @@ export default function MainSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="hidden border-r bg-muted/40 md:block">
+    <div className="hidden border-r bg-muted/40 md:fixed md:inset-y-0 md:flex md:w-[220px] lg:w-[280px] md:flex-col">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
@@ -25,7 +25,7 @@ export default function MainSidebar() {
           <div className="flex-1 overflow-auto py-2">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               {navItems.map((item) => {
-                const isActive = item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href);
+                const isActive = item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href) && item.href !== '/dashboard';
                 return (
                     <Link
                         key={item.href}
