@@ -160,16 +160,18 @@ export default function StudentHistoryView() {
     return { present, onLeave, absent };
   }, [monthlyRecords]);
 
-  const handlePdfExport = async () => {
+  const handlePdfExport = () => {
     if (!selectedStudent || !user) return;
-  
+
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
     const primaryColor = '#1e40af';
-  
-    // Correctly load the image
+    
+    const imageUrl = 'https://raw.githubusercontent.com/bbhatt-git/app/refs/heads/main/sarc.png';
     const img = new Image();
-    img.src = '/sarc.png'; // Reference image from public folder
+    img.crossOrigin = "Anonymous"; // This is important for loading images from other domains
+    img.src = imageUrl;
+
     img.onload = () => {
         // Now that the image is loaded, generate the PDF
         const header = (data: any) => {
