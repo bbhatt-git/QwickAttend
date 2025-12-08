@@ -17,12 +17,14 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, QrCode } from 'lucide-react';
+import { MoreHorizontal, QrCode, Info, User, Hash, Book, Users, Phone } from 'lucide-react';
 import Image from 'next/image';
 import type { Student } from '@/lib/types';
+import { Badge } from '../ui/badge';
 
 export function StudentActions({ student, onActionComplete }: { student: Student; onActionComplete: () => void; }) {
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
   
   const qrSrc = student.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?data=${student.studentId}&size=256x256`;
 
@@ -37,11 +39,73 @@ export function StudentActions({ student, onActionComplete }: { student: Student
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={() => setIsInfoDialogOpen(true)}>
+            <Info className="mr-2 h-4 w-4" /> View Info
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setIsQrDialogOpen(true)}>
             <QrCode className="mr-2 h-4 w-4" /> View QR Code
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Student Info Dialog */}
+      <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Student Information</DialogTitle>
+            <DialogDescription>
+              Details for {student.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <User className="h-6 w-6" />
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    <p className="font-medium">{student.name}</p>
+                </div>
+            </div>
+             <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Hash className="h-6 w-6" />
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Student ID</p>
+                    <p className="font-medium">{student.studentId}</p>
+                </div>
+            </div>
+             <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Book className="h-6 w-6" />
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Class</p>
+                    <p className="font-medium">{student.class}</p>
+                </div>
+            </div>
+             <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Users className="h-6 w-6" />
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Section</p>
+                    <Badge variant="secondary">{student.section}</Badge>
+                </div>
+            </div>
+             <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Phone className="h-6 w-6" />
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Contact</p>
+                    <p className="font-medium">{student.contact || 'N/A'}</p>
+                </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* QR Code Viewer Dialog */}
       <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
@@ -59,7 +123,7 @@ export function StudentActions({ student, onActionComplete }: { student: Student
               width={256}
               height={256}
               className="rounded-lg border"
-              unoptimized // Recommended for dynamically generated external images
+              unoptimized
             />
           </div>
         </DialogContent>
