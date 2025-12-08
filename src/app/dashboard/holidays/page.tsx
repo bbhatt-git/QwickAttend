@@ -37,12 +37,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const holidayFormSchema = z.object({
   name: z.string().min(2, 'Holiday name must be at least 2 characters.'),
-  dateRange: z.custom<DateRange>(val => val && val.from && val.to, {
-    message: 'A date range is required.',
+  dateRange: z.custom<DateRange>(val => val && val.from, {
+    message: 'A date or date range is required.',
   }),
 });
 
-type HolidayDisplay = Holiday & { isRange: boolean, startRange?: string, endRange?: string };
 
 export default function HolidaysPage() {
   const { user } = useUser();
@@ -68,32 +67,31 @@ export default function HolidaysPage() {
     if (!user) return;
     const { from, to } = values.dateRange;
     const startDate = from.toJsDate();
-    const endDate = to.toJsDate();
+    // If 'to' is not provided (single date selection), use 'from' as the end date
+    const endDate = (to || from).toJsDate();
     
     try {
       const batch = writeBatch(firestore);
       const holidaysCollection = collection(firestore, `teachers/${user.uid}/holidays`);
       
-      if (from.isSame(to, 'day')) {
+      const interval = eachDayOfInterval({ start: startDate, end: endDate });
+      
+      // If there is more than one day, create a rangeId
+      const rangeId = interval.length > 1 ? uuidv4() : undefined;
+
+      interval.forEach(day => {
           const newDocRef = doc(holidaysCollection);
-           batch.set(newDocRef, {
-            teacherId: user.uid,
-            name: values.name,
-            date: format(startDate, 'yyyy-MM-dd'),
-          });
-      } else {
-        const rangeId = uuidv4();
-        const interval = eachDayOfInterval({ start: startDate, end: endDate });
-        interval.forEach(day => {
-            const newDocRef = doc(holidaysCollection);
-            batch.set(newDocRef, {
-                teacherId: user.uid,
-                name: values.name,
-                date: format(day, 'yyyy-MM-dd'),
-                rangeId: rangeId
-            });
-        });
-      }
+          const holidayData: any = {
+              teacherId: user.uid,
+              name: values.name,
+              date: format(day, 'yyyy-MM-dd'),
+          };
+          if(rangeId) {
+            holidayData.rangeId = rangeId;
+          }
+          batch.set(newDocRef, holidayData);
+      });
+      
 
       await batch.commit();
 
@@ -128,7 +126,7 @@ export default function HolidaysPage() {
     }
   };
 
-  const processedHolidays = useMemoFirebase((): HolidayDisplay[] => {
+  const processedHolidays = useMemo(() => {
     if (!holidays) return [];
     
     const holidayMap = new Map<string, Holiday[]>();
@@ -145,13 +143,13 @@ export default function HolidaysPage() {
         }
     });
 
-    const displayList: HolidayDisplay[] = [];
+    const displayList: any[] = [];
 
     singleHolidays.forEach(h => {
         displayList.push({ ...h, isRange: false });
     });
 
-    holidayMap.forEach((rangeHolidays, rangeId) => {
+    holidayMap.forEach((rangeHolidays) => {
         if (rangeHolidays.length > 0) {
             rangeHolidays.sort((a, b) => a.date.localeCompare(b.date));
             const firstDay = rangeHolidays[0];
@@ -205,7 +203,7 @@ export default function HolidaysPage() {
                   name="dateRange"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Date Range</FormLabel>
+                      <FormLabel>Date or Date Range</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -217,10 +215,14 @@ export default function HolidaysPage() {
                               )}
                             >
                               {field.value?.from ? (
-                                field.value.to.isSame(field.value.from, 'day') ? (
-                                  `BS: ${field.value.from.format('DD, MMMM YYYY')}`
+                                field.value.to ? (
+                                  (field.value.to as any).isSame(field.value.from, 'day') ? (
+                                    `BS: ${field.value.from.format('DD, MMMM YYYY')}`
+                                  ) : (
+                                    `BS: ${field.value.from.format('DD, MMMM')} - ${field.value.to.format('DD, MMMM YYYY')}`
+                                  )
                                 ) : (
-                                  `BS: ${field.value.from.format('DD, MMMM')} - ${field.value.to.format('DD, MMMM YYYY')}`
+                                  `BS: ${field.value.from.format('DD, MMMM YYYY')}`
                                 )
                               ) : (
                                 <span>Pick a date or range</span>
