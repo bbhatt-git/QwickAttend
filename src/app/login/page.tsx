@@ -13,7 +13,7 @@ export default function LoginPage() {
         </p>
       </div>
       <LoginForm />
-      <Alert className="mt-6 text-left">
+      <Alert className="mt-6 text-left border-none bg-muted/50">
         <ShieldCheck className="h-4 w-4" />
         <AlertTitle>Admin Notice</AlertTitle>
         <AlertDescription>
