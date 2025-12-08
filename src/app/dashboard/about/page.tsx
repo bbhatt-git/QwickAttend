@@ -38,6 +38,16 @@ export default function AboutPage() {
                     <p>
                         A passionate developer focused on creating useful and elegant solutions for everyday challenges.
                     </p>
+                     <div className="space-y-2 text-sm">
+                        <a href="mailto:hello@bbhatt.com.np" className="flex items-center gap-3 text-primary hover:underline">
+                            <Mail className="h-4 w-4" />
+                            hello@bbhatt.com.np
+                        </a>
+                        <a href="tel:+9779761184935" className="flex items-center gap-3 text-primary hover:underline">
+                           <Phone className="h-4 w-4" />
+                            +977 9761184935
+                        </a>
+                    </div>
                     <div className="flex items-center justify-center gap-6 pt-4">
                         <Button asChild variant="outline" size="icon">
                             <Link href="https://bbhatt.com.np" target="_blank" rel="noopener noreferrer" aria-label="Website">
@@ -60,34 +70,6 @@ export default function AboutPage() {
                             </Link>
                         </Button>
                     </div>
-                </CardContent>
-            </Card>
-
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                       <Mail className="h-5 w-5" />
-                        Contact Email
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <a href="mailto:hello@bbhatt.com.np" className="text-primary hover:underline">
-                        hello@bbhatt.com.np
-                    </a>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                       <Phone className="h-5 w-5" />
-                        Contact Phone
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <a href="tel:+9779761184935" className="text-primary hover:underline">
-                        +977 9761184935
-                    </a>
                 </CardContent>
             </Card>
         </div>

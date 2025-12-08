@@ -8,7 +8,6 @@ import {
   CalendarClock,
   Nfc,
   CalendarOff,
-  Info,
 } from 'lucide-react';
 
 export const navItems = [
@@ -18,5 +17,4 @@ export const navItems = [
   { href: '/dashboard/nfc', icon: Nfc, label: 'Scan NFC' },
   { href: '/dashboard/records', icon: CalendarClock, label: 'Records' },
   { href: '/dashboard/holidays', icon: CalendarOff, label: 'Holidays' },
-  { href: '/dashboard/about', icon: Info, label: 'About' },
 ];
