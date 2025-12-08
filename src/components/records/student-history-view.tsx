@@ -168,21 +168,23 @@ export default function StudentHistoryView() {
     const bsMonthYear = new NepaliDate(displayDate).format('MMMM YYYY');
     const primaryColor = '#1e40af';
   
-    const loadImage = (src: string): Promise<HTMLImageElement> => {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = src;
-        img.onload = () => resolve(img);
-        img.onerror = (err) => reject(err);
-      });
+    const loadImageAsDataUrl = (url: string): Promise<string> => {
+        return fetch(url)
+            .then(response => response.blob())
+            .then(blob => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            }));
     };
   
     try {
-      const logoImg = await loadImage('/sarc.png');
+      const logoDataUrl = await loadImageAsDataUrl('/sarc.png');
   
       const header = (data: any) => {
         // Logo
-        doc.addImage(logoImg, 'PNG', 14, 12, 25, 25);
+        doc.addImage(logoDataUrl, 'PNG', 14, 12, 25, 25);
   
         // School Info
         doc.setFont('helvetica', 'bold');
@@ -488,6 +490,8 @@ export default function StudentHistoryView() {
     </Card>
   );
 }
+
+    
 
     
 
