@@ -28,4 +28,5 @@ export type Holiday = {
   date: string; // 'yyyy-MM-dd'
   name: string;
   teacherId: string;
+  rangeId?: string;
 };

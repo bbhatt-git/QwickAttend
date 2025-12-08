@@ -3,17 +3,18 @@
 
 import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, deleteDoc, doc } from 'firebase/firestore';
-import { format } from 'date-fns';
+import { collection, query, orderBy, addDoc, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
+import { format, eachDayOfInterval } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import type { Holiday } from '@/lib/types';
 import NepaliDate from 'nepali-date-converter';
+import { v4 as uuidv4 } from 'uuid';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { NepaliCalendar } from '@/components/ui/nepali-calendar';
+import { NepaliCalendar, type DateRange } from '@/components/ui/nepali-calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -30,16 +31,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const holidayFormSchema = z.object({
   name: z.string().min(2, 'Holiday name must be at least 2 characters.'),
-  date: z.custom<NepaliDate>(val => val instanceof NepaliDate, {
-    message: 'A date is required.',
+  dateRange: z.custom<DateRange>(val => val && val.from && val.to, {
+    message: 'A date range is required.',
   }),
 });
+
+type HolidayDisplay = Holiday & { isRange: boolean, startRange?: string, endRange?: string };
 
 export default function HolidaysPage() {
   const { user } = useUser();
@@ -63,15 +65,39 @@ export default function HolidaysPage() {
 
   const onSubmit = async (values: z.infer<typeof holidayFormSchema>) => {
     if (!user) return;
-    const adDate = values.date.toJsDate();
+    const { from, to } = values.dateRange;
+    const startDate = from.toJsDate();
+    const endDate = to.toJsDate();
+    
     try {
-      await addDoc(collection(firestore, `teachers/${user.uid}/holidays`), {
-        teacherId: user.uid,
-        name: values.name,
-        date: format(adDate, 'yyyy-MM-dd'),
-      });
-      toast({ title: 'Success', description: 'Holiday has been added.' });
-      form.reset({name: '', date: undefined});
+      const batch = writeBatch(firestore);
+      const holidaysCollection = collection(firestore, `teachers/${user.uid}/holidays`);
+      
+      if (from.isSame(to, 'day')) {
+          const newDocRef = doc(holidaysCollection);
+           batch.set(newDocRef, {
+            teacherId: user.uid,
+            name: values.name,
+            date: format(startDate, 'yyyy-MM-dd'),
+          });
+      } else {
+        const rangeId = uuidv4();
+        const interval = eachDayOfInterval({ start: startDate, end: endDate });
+        interval.forEach(day => {
+            const newDocRef = doc(holidaysCollection);
+            batch.set(newDocRef, {
+                teacherId: user.uid,
+                name: values.name,
+                date: format(day, 'yyyy-MM-dd'),
+                rangeId: rangeId
+            });
+        });
+      }
+
+      await batch.commit();
+
+      toast({ title: 'Success', description: 'Holiday(s) have been added.' });
+      form.reset({name: '', dateRange: undefined});
       setRefetchTrigger(t => t + 1);
     } catch (error) {
       console.error('Error adding holiday:', error);
@@ -79,11 +105,21 @@ export default function HolidaysPage() {
     }
   };
 
-  const deleteHoliday = async (holidayId: string) => {
+  const deleteHoliday = async (holiday: Holiday) => {
     if (!user) return;
     try {
-        await deleteDoc(doc(firestore, `teachers/${user.uid}/holidays`, holidayId));
-        toast({ title: 'Success', description: 'Holiday has been removed.' });
+        if (holiday.rangeId) {
+            const batch = writeBatch(firestore);
+            const q = query(collection(firestore, `teachers/${user.uid}/holidays`), where("rangeId", "==", holiday.rangeId));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+        } else {
+            await deleteDoc(doc(firestore, `teachers/${user.uid}/holidays`, holiday.id));
+        }
+        toast({ title: 'Success', description: 'Holiday(s) have been removed.' });
         setRefetchTrigger(t => t + 1);
     } catch (error) {
          console.error('Error deleting holiday:', error);
@@ -91,20 +127,61 @@ export default function HolidaysPage() {
     }
   };
 
+  const processedHolidays = useMemoFirebase((): HolidayDisplay[] => {
+    if (!holidays) return [];
+    
+    const holidayMap = new Map<string, Holiday[]>();
+    const singleHolidays: Holiday[] = [];
+
+    holidays.forEach(h => {
+        if (h.rangeId) {
+            if (!holidayMap.has(h.rangeId)) {
+                holidayMap.set(h.rangeId, []);
+            }
+            holidayMap.get(h.rangeId)!.push(h);
+        } else {
+            singleHolidays.push(h);
+        }
+    });
+
+    const displayList: HolidayDisplay[] = [];
+
+    singleHolidays.forEach(h => {
+        displayList.push({ ...h, isRange: false });
+    });
+
+    holidayMap.forEach((rangeHolidays, rangeId) => {
+        if (rangeHolidays.length > 0) {
+            rangeHolidays.sort((a, b) => a.date.localeCompare(b.date));
+            const firstDay = rangeHolidays[0];
+            const lastDay = rangeHolidays[rangeHolidays.length - 1];
+            displayList.push({
+                ...firstDay,
+                isRange: true,
+                startRange: firstDay.date,
+                endRange: lastDay.date,
+            });
+        }
+    });
+
+    return displayList.sort((a,b) => b.date.localeCompare(a.date));
+  }, [holidays]);
+
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Manage Holidays</h1>
         <p className="text-muted-foreground">
-          Add or remove holidays for your school. These days will not count towards absence.
+          Add or remove single holidays or date ranges for your school.
         </p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Add New Holiday</CardTitle>
-            <CardDescription>Select a date and give the holiday a name.</CardDescription>
+            <CardTitle>Add New Holiday(s)</CardTitle>
+            <CardDescription>Select a date or a range of dates.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -124,10 +201,10 @@ export default function HolidaysPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="date"
+                  name="dateRange"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Date</FormLabel>
+                      <FormLabel>Date Range</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -138,10 +215,14 @@ export default function HolidaysPage() {
                                 !field.value && 'text-muted-foreground'
                               )}
                             >
-                              {field.value ? (
-                                `BS: ${field.value.format('DD, MMMM YYYY')}`
+                              {field.value?.from ? (
+                                field.value.to.isSame(field.value.from, 'day') ? (
+                                  `BS: ${field.value.from.format('DD, MMMM YYYY')}`
+                                ) : (
+                                  `BS: ${field.value.from.format('DD, MMMM')} - ${field.value.to.format('DD, MMMM YYYY')}`
+                                )
                               ) : (
-                                <span>Pick a date</span>
+                                <span>Pick a date or range</span>
                               )}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
@@ -149,9 +230,10 @@ export default function HolidaysPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                            <NepaliCalendar
+                            mode="range"
                             value={field.value}
-                            onSelect={(date) => {
-                                field.onChange(date)
+                            onSelect={(range) => {
+                                field.onChange(range)
                             }}
                           />
                         </PopoverContent>
@@ -166,7 +248,7 @@ export default function HolidaysPage() {
                   ) : (
                     <PlusCircle className="mr-2 h-4 w-4" />
                   )}
-                  Add Holiday
+                  Add Holiday(s)
                 </Button>
               </form>
             </Form>
@@ -182,9 +264,9 @@ export default function HolidaysPage() {
             <div className="h-[350px] space-y-4">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
-              ) : holidays && holidays.length > 0 ? (
+              ) : processedHolidays && processedHolidays.length > 0 ? (
                 <ScrollArea className='h-full'>
-                {holidays.map((holiday) => (
+                {processedHolidays.map((holiday) => (
                   <div
                     key={holiday.id}
                     className="flex items-center justify-between rounded-md border p-3 mb-2"
@@ -192,7 +274,10 @@ export default function HolidaysPage() {
                     <div>
                       <p className="font-medium">{holiday.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new NepaliDate(new Date(holiday.date.replace(/-/g, '/'))).format('DD MMMM, YYYY')}
+                        {holiday.isRange ? 
+                          `${new NepaliDate(new Date(holiday.startRange!.replace(/-/g, '/'))).format('DD MMMM')} - ${new NepaliDate(new Date(holiday.endRange!.replace(/-/g, '/'))).format('DD MMMM, YYYY')}` :
+                          new NepaliDate(new Date(holiday.date.replace(/-/g, '/'))).format('DD MMMM, YYYY')
+                        }
                       </p>
                     </div>
                     <AlertDialog>
@@ -210,7 +295,7 @@ export default function HolidaysPage() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteHoliday(holiday.id)} className='bg-destructive hover:bg-destructive/90'>Delete</AlertDialogAction>
+                              <AlertDialogAction onClick={() => deleteHoliday(holiday)} className='bg-destructive hover:bg-destructive/90'>Delete</AlertDialogAction>
                           </AlertDialogFooter>
                        </AlertDialogContent>
                     </AlertDialog>
