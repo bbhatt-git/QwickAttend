@@ -217,13 +217,14 @@ export default function AttendanceView() {
   
       const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
   
-      let headers = ['Student ID', 'Student Name', ...dateColumns];
+      let headers = ['Student ID', 'Student Name'];
       if (classFilter === 'all') {
-        headers.unshift('Class');
+        headers.push('Class');
       }
       if (sectionFilter === 'all') {
-        headers.splice(1, 0, 'Section');
+        headers.push('Section');
       }
+      headers.push(...dateColumns);
       
       const studentsForReport = [...(students || [])].sort((a, b) => a.studentId.localeCompare(b.studentId));
 
@@ -311,18 +312,25 @@ export default function AttendanceView() {
 
   const handleOverallExport = async () => {
     if (!user || !allStudents) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not load student data.' });
-      return;
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load student data.' });
+        return;
     }
     setIsDownloadingOverall(true);
 
     try {
-        const today = startOfDay(new Date());
+        const today = new Date();
+        const todayBS = new NepaliDate(today);
+        const currentBSYear = todayBS.getYear();
 
-        // 1. Fetch all attendance and holidays
+        // Start of the Nepali year (Baisakh 1st)
+        const startOfYearBS = new NepaliDate(currentBSYear, 0, 1);
+        const startOfYearAD = startOfYearBS.toJsDate();
+        
+        // 1. Fetch all attendance and holidays for the entire year
         const attendanceQuery = query(
             collection(firestore, `teachers/${user.uid}/attendance`),
-            orderBy('date', 'asc')
+            where('date', '>=', format(startOfYearAD, 'yyyy-MM-dd')),
+            where('date', '<=', format(today, 'yyyy-MM-dd'))
         );
         const holidaysQuery = query(collection(firestore, `teachers/${user.uid}/holidays`));
 
@@ -334,19 +342,12 @@ export default function AttendanceView() {
         const allAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
         const allHolidays = holidaysSnapshot.docs.map(d => d.data() as Holiday);
         const holidayDateSet = new Set(allHolidays.map(h => h.date));
-
-        if (allAttendance.length === 0) {
-            toast({ title: 'No Data', description: 'No attendance records found to generate a report.' });
-            setIsDownloadingOverall(false);
-            return;
-        }
-
-        // 2. Determine date range and calculate school open days
-        const firstRecordDate = startOfDay(new Date(allAttendance[0].date.replace(/-/g, '/')));
-        const allDates = eachDayOfInterval({ start: firstRecordDate, end: today });
         
-        const schoolOpenDays = allDates.filter(date => {
-            const isSaturday = date.getDay() === 6;
+        // 2. Determine school open days for the entire year up to today
+        const allDatesInYear = eachDayOfInterval({ start: startOfYearAD, end: today });
+        
+        const schoolOpenDays = allDatesInYear.filter(date => {
+            const isSaturday = date.getDay() === 6; // 0 is Sunday, 6 is Saturday
             const isHoliday = holidayDateSet.has(format(date, 'yyyy-MM-dd'));
             return !isSaturday && !isHoliday;
         });
@@ -360,6 +361,7 @@ export default function AttendanceView() {
             const presentDays = studentAttendance.filter(a => a.status === 'present').length;
             const onLeaveDays = studentAttendance.filter(a => a.status === 'on_leave').length;
             
+            // Calculate absent days only on days the school was open
             const attendedDateSet = new Set(studentAttendance.map(a => a.date));
             const absentDays = Array.from(schoolOpenDateSet).filter(d => !attendedDateSet.has(d)).length;
 
@@ -381,10 +383,11 @@ export default function AttendanceView() {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', 'overall_attendance_summary.csv');
+        link.setAttribute('download', `overall_attendance_summary_${currentBSYear}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
     } catch (error) {
         console.error('Failed to export overall report:', error);
         toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not generate the summary report.' });
@@ -628,5 +631,7 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+    
 
     
