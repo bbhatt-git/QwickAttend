@@ -30,8 +30,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -58,6 +58,10 @@ export default function AttendanceView() {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [studentForLeave, setStudentForLeave] = useState<Student | null>(null);
   const [leaveReason, setLeaveReason] = useState('');
+
+  // State for summary report dialog
+  const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
+  const [summaryStartDate, setSummaryStartDate] = useState(() => new NepaliDate(new NepaliDate().getYear(), 0, 1));
 
 
   useEffect(() => {
@@ -319,14 +323,9 @@ export default function AttendanceView() {
 
     try {
         const today = new Date();
-        const todayBS = new NepaliDate(today);
-        const currentBSYear = todayBS.getYear();
-
-        // Start of the Nepali year (Baisakh 1st)
-        const startOfYearBS = new NepaliDate(currentBSYear, 0, 1);
-        const startOfYearAD = startOfYearBS.toJsDate();
+        const startOfYearAD = summaryStartDate.toJsDate();
         
-        // 1. Fetch all attendance and holidays for the entire year
+        // 1. Fetch all attendance and holidays for the selected range
         const attendanceQuery = query(
             collection(firestore, `teachers/${user.uid}/attendance`),
             where('date', '>=', format(startOfYearAD, 'yyyy-MM-dd')),
@@ -343,10 +342,10 @@ export default function AttendanceView() {
         const allHolidays = holidaysSnapshot.docs.map(d => d.data() as Holiday);
         const holidayDateSet = new Set(allHolidays.map(h => h.date));
         
-        // 2. Determine school open days for the entire year up to today
-        const allDatesInYear = eachDayOfInterval({ start: startOfYearAD, end: today });
+        // 2. Determine school open days for the selected range
+        const allDatesInRange = eachDayOfInterval({ start: startOfYearAD, end: today });
         
-        const schoolOpenDays = allDatesInYear.filter(date => {
+        const schoolOpenDays = allDatesInRange.filter(date => {
             const isSaturday = date.getDay() === 6; // 0 is Sunday, 6 is Saturday
             const isHoliday = holidayDateSet.has(format(date, 'yyyy-MM-dd'));
             return !isSaturday && !isHoliday;
@@ -361,7 +360,7 @@ export default function AttendanceView() {
             const presentDays = studentAttendance.filter(a => a.status === 'present').length;
             const onLeaveDays = studentAttendance.filter(a => a.status === 'on_leave').length;
             
-            // Calculate absent days only on days the school was open
+            // Calculate absent days only on days the school was open in the selected range
             const attendedDateSet = new Set(studentAttendance.map(a => a.date));
             const absentDays = Array.from(schoolOpenDateSet).filter(d => !attendedDateSet.has(d)).length;
 
@@ -382,12 +381,13 @@ export default function AttendanceView() {
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
+        const start_date_str = summaryStartDate.format('YYYY_MM_DD');
         link.setAttribute('href', url);
-        link.setAttribute('download', `overall_attendance_summary_${currentBSYear}.csv`);
+        link.setAttribute('download', `overall_attendance_summary_from_${start_date_str}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
+        setIsSummaryDialogOpen(false);
     } catch (error) {
         console.error('Failed to export overall report:', error);
         toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not generate the summary report.' });
@@ -499,10 +499,36 @@ export default function AttendanceView() {
                 {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Download Monthly Report
             </Button>
-            <Button onClick={handleOverallExport} disabled={isDownloadingOverall} variant="secondary">
-                {isDownloadingOverall ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-                Download Summary Report
-            </Button>
+             <Dialog open={isSummaryDialogOpen} onOpenChange={setIsSummaryDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="secondary">
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Download Summary Report
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Download Attendance Summary</DialogTitle>
+                        <DialogDescription>
+                            Please select the start date for the summary report. The report will include data from this date up to today.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-center py-4">
+                        <NepaliCalendar
+                            mode="single"
+                            value={summaryStartDate}
+                            onSelect={(date) => date && setSummaryStartDate(date)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsSummaryDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleOverallExport} disabled={isDownloadingOverall}>
+                            {isDownloadingOverall ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Download
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
       </div>
       {todayHoliday ? (
@@ -631,6 +657,8 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+    
 
     
 
