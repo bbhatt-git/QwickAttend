@@ -1,3 +1,3 @@
-# A project by
+## A Firebase studio project by
 ## Bhupesh Raj Bhatt
-# Email: hello@bbhatt.com.np
+### Email: hello@bbhatt.com.np

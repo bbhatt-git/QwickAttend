@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { format, isValid } from 'date-fns';
-import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff, FileText } from 'lucide-react';
+import { format, isValid, eachDayOfInterval, startOfDay } from 'date-fns';
+import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff, FileText, FileDown } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import { useUser, useFirestore } from '@/firebase';
@@ -49,6 +49,7 @@ export default function AttendanceView() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingOverall, setIsDownloadingOverall] = useState(false);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [sectionFilter, setSectionFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
@@ -308,6 +309,90 @@ export default function AttendanceView() {
     }
   };
 
+  const handleOverallExport = async () => {
+    if (!user || !allStudents) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load student data.' });
+      return;
+    }
+    setIsDownloadingOverall(true);
+
+    try {
+        const today = startOfDay(new Date());
+
+        // 1. Fetch all attendance and holidays
+        const attendanceQuery = query(
+            collection(firestore, `teachers/${user.uid}/attendance`),
+            orderBy('date', 'asc')
+        );
+        const holidaysQuery = query(collection(firestore, `teachers/${user.uid}/holidays`));
+
+        const [attendanceSnapshot, holidaysSnapshot] = await Promise.all([
+            getDocs(attendanceQuery),
+            getDocs(holidaysQuery)
+        ]);
+
+        const allAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
+        const allHolidays = holidaysSnapshot.docs.map(d => d.data() as Holiday);
+        const holidayDateSet = new Set(allHolidays.map(h => h.date));
+
+        if (allAttendance.length === 0) {
+            toast({ title: 'No Data', description: 'No attendance records found to generate a report.' });
+            setIsDownloadingOverall(false);
+            return;
+        }
+
+        // 2. Determine date range and calculate school open days
+        const firstRecordDate = startOfDay(new Date(allAttendance[0].date.replace(/-/g, '/')));
+        const allDates = eachDayOfInterval({ start: firstRecordDate, end: today });
+        
+        const schoolOpenDays = allDates.filter(date => {
+            const isSaturday = date.getDay() === 6;
+            const isHoliday = holidayDateSet.has(format(date, 'yyyy-MM-dd'));
+            return !isSaturday && !isHoliday;
+        });
+        const totalSchoolOpenDays = schoolOpenDays.length;
+        const schoolOpenDateSet = new Set(schoolOpenDays.map(d => format(d, 'yyyy-MM-dd')));
+
+        // 3. Process data for each student
+        const dataToExport = allStudents.map(student => {
+            const studentAttendance = allAttendance.filter(a => a.studentId === student.studentId);
+            
+            const presentDays = studentAttendance.filter(a => a.status === 'present').length;
+            const onLeaveDays = studentAttendance.filter(a => a.status === 'on_leave').length;
+            
+            const attendedDateSet = new Set(studentAttendance.map(a => a.date));
+            const absentDays = Array.from(schoolOpenDateSet).filter(d => !attendedDateSet.has(d)).length;
+
+            return {
+                'Student ID': student.studentId,
+                'Student Name': student.name,
+                'Class': student.class,
+                'Section': student.section,
+                'School Open Days': totalSchoolOpenDays,
+                'Present Days': presentDays,
+                'Absent Days': absentDays,
+                'On Leave Days': onLeaveDays,
+            };
+        });
+
+        // 4. Generate and download CSV
+        const csv = Papa.unparse(dataToExport);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'overall_attendance_summary.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('Failed to export overall report:', error);
+        toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not generate the summary report.' });
+    } finally {
+        setIsDownloadingOverall(false);
+    }
+};
+
   const handleDateChange = (direction: 'prev' | 'next') => {
     try {
       const year = bsDate.getYear();
@@ -406,10 +491,14 @@ export default function AttendanceView() {
               </SelectContent>
             </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
             <Button onClick={handleMonthlyExport} disabled={isDownloading}>
                 {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Download Monthly Report
+            </Button>
+            <Button onClick={handleOverallExport} disabled={isDownloadingOverall} variant="secondary">
+                {isDownloadingOverall ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                Download Summary Report
             </Button>
         </div>
       </div>
