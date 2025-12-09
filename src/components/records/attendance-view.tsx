@@ -228,7 +228,7 @@ export default function AttendanceView() {
       if (sectionFilter === 'all') {
         headers.push('Section');
       }
-      headers.push(...dateColumns);
+      headers.push(...dateColumns, 'Total Present', 'Total Absent', 'Total On Leave');
       
       const studentsForReport = [...(students || [])].sort((a, b) => a.studentId.localeCompare(b.studentId));
 
@@ -243,6 +243,10 @@ export default function AttendanceView() {
         if (sectionFilter === 'all') {
           rowData['Section'] = student.section;
         }
+
+        let presentCount = 0;
+        let absentCount = 0;
+        let leaveCount = 0;
   
         dateColumns.forEach(bsDay => {
           const bsDateToCheck = new NepaliDate(bsYear, bsMonth, parseInt(bsDay));
@@ -261,12 +265,12 @@ export default function AttendanceView() {
           }
           
           if(holidayDateMap.has(adDateStr)) {
-            rowData[bsDay] = `Holiday (${holidayDateMap.get(adDateStr)})`;
+            rowData[bsDay] = 'H';
             return;
           }
 
           if (bsDateToCheck.getDay() === 6) { // 6 corresponds to Saturday in NepaliDate
-            rowData[bsDay] = 'Saturday';
+            rowData[bsDay] = 'S';
             return;
           }
           
@@ -275,11 +279,23 @@ export default function AttendanceView() {
           );
   
           if (attendanceRecord) {
-            rowData[bsDay] = attendanceRecord.status === 'present' ? 'Present' : `On leave (${attendanceRecord.leaveReason || 'N/A'})`;
+            if (attendanceRecord.status === 'present') {
+              rowData[bsDay] = 'P';
+              presentCount++;
+            } else {
+              rowData[bsDay] = 'L';
+              leaveCount++;
+            }
           } else {
-            rowData[bsDay] = 'Absent';
+            rowData[bsDay] = 'A';
+            absentCount++;
           }
         });
+
+        rowData['Total Present'] = presentCount;
+        rowData['Total Absent'] = absentCount;
+        rowData['Total On Leave'] = leaveCount;
+
         return rowData;
       });
   
