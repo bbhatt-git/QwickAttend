@@ -221,7 +221,7 @@ export default function AttendanceView() {
         
         const studentsForReport = [...(students || [])].sort((a, b) => a.studentId.localeCompare(b.studentId));
 
-        let headers = ['Student ID', 'Student Name'];
+        let headers: string[] = ['Student ID', 'Student Name'];
         if (classFilter === 'all') headers.push('Class');
         if (sectionFilter === 'all') headers.push('Section');
         
@@ -229,10 +229,6 @@ export default function AttendanceView() {
         headers.push(...dateColumns, 'Total Present', 'Total Absent', 'Total On Leave');
 
         const sheetData = [headers];
-        const columnWidths: { wch: number }[] = headers.map(h => ({ wch: h.length }));
-
-        const satStyle = { fill: { fgColor: { rgb: "FFFF0000" } } }; // Red
-        const holidayStyle = { fill: { fgColor: { rgb: "FFFFFF00" } } }; // Yellow
 
         studentsForReport.forEach(student => {
             const row: (string | number)[] = [student.studentId, student.name];
@@ -281,40 +277,42 @@ export default function AttendanceView() {
 
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-        // Apply styles and calculate column widths
+        const satStyle = { fill: { fgColor: { rgb: "FFFF0000" } } };
+        const holidayStyle = { fill: { fgColor: { rgb: "FFFFFF00" } } }; 
+        const columnWidths: { wch: number }[] = headers.map(h => ({ wch: h.length }));
+
+        // Calculate column widths
         sheetData.forEach((row, r) => {
             row.forEach((cellValue, c) => {
-                const cellAddress = XLSX.utils.encode_cell({ r, c });
-                if(!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
-
-                if (r > 0) { // Skip header row for styling
-                    if (typeof cellValue === 'string') {
-                         if (cellValue.toLowerCase() === 'saturday') {
-                             ws[cellAddress].s = satStyle;
-                         } else if (holidayDateMap.has(format(new NepaliDate(bsYear, bsMonth, parseInt(headers[c])).toJsDate(), 'yyyy-MM-dd'))) {
-                             ws[cellAddress].s = holidayStyle;
-                         }
-                    }
-                }
-                
-                // Calculate widths
                 const len = cellValue ? String(cellValue).length : 0;
                 if (!columnWidths[c] || len > columnWidths[c].wch) {
-                    columnWidths[c] = { wch: len + 1 }; // add a little padding
+                    columnWidths[c] = { wch: len + 2 };
                 }
             });
         });
 
-        // Ensure date columns are at least a certain width
-        const dateStartIndex = headers.length - 3 - dateColumns.length;
-        for(let i = 0; i < dateColumns.length; i++) {
-          const colIndex = dateStartIndex + i;
-          if (columnWidths[colIndex].wch < 5) {
-            columnWidths[colIndex].wch = 5;
-          }
+        // Apply styles to date columns
+        const dateStartIndex = headers.length - dateColumns.length - 3;
+        
+        for (let r = 1; r < sheetData.length; r++) { // Start from row 1 (data)
+            for (let c = 0; c < dateColumns.length; c++) {
+                const day = parseInt(dateColumns[c]);
+                const colIndex = dateStartIndex + c;
+                const cellAddress = XLSX.utils.encode_cell({ r, c: colIndex });
+
+                if (!ws[cellAddress]) continue; // Skip if cell doesn't exist
+
+                const bsDateToCheck = new NepaliDate(bsYear, bsMonth, day);
+                const adDateStr = format(bsDateToCheck.toJsDate(), 'yyyy-MM-dd');
+                
+                if (bsDateToCheck.getDay() === 6) {
+                    ws[cellAddress].s = satStyle;
+                } else if (holidayDateMap.has(adDateStr)) {
+                    ws[cellAddress].s = holidayStyle;
+                }
+            }
         }
-
-
+        
         ws['!cols'] = columnWidths;
 
         const wb = XLSX.utils.book_new();
@@ -685,6 +683,8 @@ export default function AttendanceView() {
 
     
 
+
+    
 
     
 
