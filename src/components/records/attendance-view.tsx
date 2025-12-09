@@ -218,23 +218,26 @@ export default function AttendanceView() {
         const attendanceSnapshot = await getDocs(attendanceQuery);
         const monthlyAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
         const holidayDateMap = new Map(holidays.map(h => [h.date, h.name]));
+        
+        const studentsForReport = [...(students || [])].sort((a, b) => a.studentId.localeCompare(b.studentId));
 
         let headers = ['Student ID', 'Student Name'];
         if (classFilter === 'all') headers.push('Class');
         if (sectionFilter === 'all') headers.push('Section');
-
+        
         const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
         headers.push(...dateColumns, 'Total Present', 'Total Absent', 'Total On Leave');
 
-        const studentsForReport = [...(students || [])].sort((a, b) => a.studentId.localeCompare(b.studentId));
+        const sheetData = [headers];
+        const columnWidths: { wch: number }[] = headers.map(h => ({ wch: h.length }));
 
-        const dataForSheet = studentsForReport.map(student => {
-            const rowData: { [key: string]: string | number } = {
-                'Student ID': student.studentId,
-                'Student Name': student.name,
-            };
-            if (classFilter === 'all') rowData['Class'] = student.class;
-            if (sectionFilter === 'all') rowData['Section'] = student.section;
+        const satStyle = { fill: { fgColor: { rgb: "FFFF0000" } } }; // Red
+        const holidayStyle = { fill: { fgColor: { rgb: "FFFFFF00" } } }; // Yellow
+
+        studentsForReport.forEach(student => {
+            const row: (string | number)[] = [student.studentId, student.name];
+            if (classFilter === 'all') row.push(student.class);
+            if (sectionFilter === 'all') row.push(student.section);
 
             let presentCount = 0, absentCount = 0, leaveCount = 0;
 
@@ -243,69 +246,86 @@ export default function AttendanceView() {
                 const adDateToCheck = bsDateToCheck.toJsDate();
                 adDateToCheck.setHours(0, 0, 0, 0);
                 const adDateStr = format(adDateToCheck, 'yyyy-MM-dd');
-
-                if (adDateToCheck > todayAD) {
-                    rowData[bsDay] = '';
-                    return;
-                }
                 
-                const holidayName = holidayDateMap.get(adDateStr);
-                if (holidayName) {
-                    rowData[bsDay] = holidayName;
-                    return;
-                }
-
-                if (bsDateToCheck.getDay() === 6) {
-                    rowData[bsDay] = 'Saturday';
-                    return;
-                }
-
-                const attendanceRecord = monthlyAttendance.find(a => a.studentId === student.studentId && a.date === adDateStr);
-
-                if (attendanceRecord) {
-                    if (attendanceRecord.status === 'present') {
-                        rowData[bsDay] = 'P';
-                        presentCount++;
-                    } else {
-                        rowData[bsDay] = 'L';
-                        leaveCount++;
-                    }
+                let cellValue = '';
+                if (adDateToCheck > todayAD) {
+                    cellValue = '';
                 } else {
-                    rowData[bsDay] = 'A';
-                    absentCount++;
+                    const holidayName = holidayDateMap.get(adDateStr);
+                    if (holidayName) {
+                        cellValue = holidayName;
+                    } else if (bsDateToCheck.getDay() === 6) {
+                        cellValue = 'Saturday';
+                    } else {
+                        const attendanceRecord = monthlyAttendance.find(a => a.studentId === student.studentId && a.date === adDateStr);
+                        if (attendanceRecord) {
+                            if (attendanceRecord.status === 'present') {
+                                cellValue = 'P';
+                                presentCount++;
+                            } else {
+                                cellValue = 'L';
+                                leaveCount++;
+                            }
+                        } else {
+                            cellValue = 'A';
+                            absentCount++;
+                        }
+                    }
                 }
+                row.push(cellValue);
             });
 
-            rowData['Total Present'] = presentCount;
-            rowData['Total Absent'] = absentCount;
-            rowData['Total On Leave'] = leaveCount;
-            return rowData;
+            row.push(presentCount, absentCount, leaveCount);
+            sheetData.push(row);
         });
 
-        // Convert data to a worksheet
-        const worksheet = XLSX.utils.json_to_sheet(dataForSheet, { header: headers });
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-        // Set column widths
-        const colWidths = headers.map(header => {
-            if (['Student ID', 'Class', 'Section'].includes(header)) return { wch: 15 };
-            if (header === 'Student Name') return { wch: 25 };
-            if (!isNaN(parseInt(header))) return { wch: 5 }; // Date columns
-            if (header.startsWith('Total')) return { wch: 15 };
-            return { wch: 12 };
+        // Apply styles and calculate column widths
+        sheetData.forEach((row, r) => {
+            row.forEach((cellValue, c) => {
+                const cellAddress = XLSX.utils.encode_cell({ r, c });
+                if(!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
+
+                if (r > 0) { // Skip header row for styling
+                    if (typeof cellValue === 'string') {
+                         if (cellValue.toLowerCase() === 'saturday') {
+                             ws[cellAddress].s = satStyle;
+                         } else if (holidayDateMap.has(format(new NepaliDate(bsYear, bsMonth, parseInt(headers[c])).toJsDate(), 'yyyy-MM-dd'))) {
+                             ws[cellAddress].s = holidayStyle;
+                         }
+                    }
+                }
+                
+                // Calculate widths
+                const len = cellValue ? String(cellValue).length : 0;
+                if (!columnWidths[c] || len > columnWidths[c].wch) {
+                    columnWidths[c] = { wch: len + 1 }; // add a little padding
+                }
+            });
         });
-        worksheet['!cols'] = colWidths;
 
-        // Create a new workbook and append the worksheet
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Monthly Attendance');
+        // Ensure date columns are at least a certain width
+        const dateStartIndex = headers.length - 3 - dateColumns.length;
+        for(let i = 0; i < dateColumns.length; i++) {
+          const colIndex = dateStartIndex + i;
+          if (columnWidths[colIndex].wch < 5) {
+            columnWidths[colIndex].wch = 5;
+          }
+        }
 
-        // Generate and download the XLSX file
+
+        ws['!cols'] = columnWidths;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Monthly Attendance');
+
         let downloadFileName = `monthly_attendance_${bsYear}-${bsMonth + 1}`;
         if (classFilter !== 'all') downloadFileName += `_${classFilter.replace(' ', '_')}`;
         if (sectionFilter !== 'all') downloadFileName += `_${sectionFilter}`;
         downloadFileName += '.xlsx';
 
-        XLSX.writeFile(workbook, downloadFileName);
+        XLSX.writeFile(wb, downloadFileName);
 
     } catch (error) {
         console.error('Failed to export monthly report:', error);
@@ -665,6 +685,8 @@ export default function AttendanceView() {
 
     
 
+
+    
 
     
 
