@@ -6,7 +6,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, getDocs, Timestamp, addDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Check, AlertTriangle, X, Loader2, Usb } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ export function UsbScanner() {
   
   const [lastResult, setLastResult] = useState<{ text: string; type: ScanResultType } | null>(null);
   const [scannedId, setScannedId] = useState('');
+  const [isActive, setIsActive] = useState(false);
 
   const [isDataLoading, setIsDataLoading] = useState(true);
   const studentIdSet = useRef<Set<string>>(new Set());
@@ -64,9 +65,14 @@ export function UsbScanner() {
     preloadData();
   }, [user, firestore, toast]);
 
+  const activateScanner = () => {
+    inputRef.current?.focus();
+    setIsActive(true);
+  }
+  
   useEffect(() => {
-    if (!isDataLoading && inputRef.current) {
-      inputRef.current.focus();
+    if (!isDataLoading) {
+      activateScanner();
     }
   }, [isDataLoading]);
 
@@ -98,7 +104,7 @@ export function UsbScanner() {
     setTimeout(() => {
       setLastResult(null);
       setScannedId('');
-      inputRef.current?.focus();
+      inputRef.current?.focus(); // Re-focus after feedback
     }, 1500);
   };
 
@@ -157,7 +163,7 @@ export function UsbScanner() {
 
   return (
     <Card className="w-full max-w-md shadow-lg rounded-xl overflow-hidden relative">
-      <CardContent className="p-0 flex flex-col items-center justify-center text-center aspect-square" onClick={() => inputRef.current?.focus()}>
+      <CardContent className="p-0 flex flex-col items-center justify-center text-center aspect-square cursor-pointer" onClick={activateScanner}>
         
         {isDataLoading ? (
             <div className="flex flex-col items-center justify-center">
@@ -165,11 +171,17 @@ export function UsbScanner() {
                 <p className="text-lg font-semibold text-foreground">Loading Student Data...</p>
                 <p className="text-sm text-muted-foreground">Please wait.</p>
             </div>
+        ) : isActive ? (
+             <div className='flex flex-col items-center justify-center'>
+                <Usb className="h-20 w-20 text-primary animate-pulse" />
+                <h2 className="text-2xl font-bold">Scanner Active</h2>
+                <p className="text-muted-foreground mt-2 px-4">Ready to receive input from your USB device.</p>
+            </div>
         ) : (
             <div className='flex flex-col items-center justify-center'>
                 <Usb className="h-20 w-20 text-muted-foreground mb-4" />
-                <h2 className="text-2xl font-bold">Waiting for Scan</h2>
-                <p className="text-muted-foreground mt-2 px-4">Click here and scan a student ID using your USB reader.</p>
+                <h2 className="text-2xl font-bold">Click to Activate Scanner</h2>
+                <p className="text-muted-foreground mt-2 px-4">The scanner will be ready once you click this area.</p>
             </div>
         )}
 
@@ -179,8 +191,9 @@ export function UsbScanner() {
             type="text"
             value={scannedId}
             onChange={(e) => setScannedId(e.target.value)}
-            disabled={!!lastResult}
-            autoFocus
+            onBlur={() => setIsActive(false)}
+            onFocus={() => setIsActive(true)}
+            disabled={!!lastResult || isDataLoading}
           />
         </form>
         
