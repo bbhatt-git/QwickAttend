@@ -6,6 +6,7 @@ import { format, isValid, eachDayOfInterval, startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff, FileText, FileDown } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
+import * as XLSX from 'xlsx';
 import { useUser, useFirestore } from '@/firebase';
 import { useStudentData } from '@/context/student-provider';
 import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, deleteDoc, doc } from 'firebase/firestore';
@@ -195,141 +196,124 @@ export default function AttendanceView() {
   const handleMonthlyExport = async () => {
     if (!bsDate || !user) return;
     setIsDownloading(true);
-    const todayAD = new Date(); // Today's Gregorian date
-    todayAD.setHours(0, 0, 0, 0); // Normalize to the start of the day
 
     try {
+        const todayAD = new Date();
+        todayAD.setHours(0, 0, 0, 0);
+
         const bsMonth = bsDate.getMonth();
         const bsYear = bsDate.getYear();
         const bsDaysInMonth = new NepaliDate(bsYear, bsMonth + 1, 0).getDate();
 
-        // Find the AD date range for the selected BS month
         const firstDayOfBSMonth = new NepaliDate(bsYear, bsMonth, 1);
         const lastDayOfBSMonth = new NepaliDate(bsYear, bsMonth, bsDaysInMonth);
         const adMonthStart = firstDayOfBSMonth.toJsDate();
         const adMonthEnd = lastDayOfBSMonth.toJsDate();
 
-      const attendanceQuery = query(
-        collection(firestore, `teachers/${user.uid}/attendance`),
-        where('date', '>=', format(adMonthStart, 'yyyy-MM-dd')),
-        where('date', '<=', format(adMonthEnd, 'yyyy-MM-dd'))
-      );
-  
-      const attendanceSnapshot = await getDocs(attendanceQuery);
-      const monthlyAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
-      const holidayDateMap = new Map(holidays.map(h => [h.date, h.name]));
-  
-      const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
-  
-      let headers = ['Student ID', 'Student Name'];
-      if (classFilter === 'all') {
-        headers.push('Class');
-      }
-      if (sectionFilter === 'all') {
-        headers.push('Section');
-      }
-      headers.push(...dateColumns, 'Total Present', 'Total Absent', 'Total On Leave');
-      
-      const studentsForReport = [...(students || [])].sort((a, b) => a.studentId.localeCompare(b.studentId));
+        const attendanceQuery = query(
+            collection(firestore, `teachers/${user.uid}/attendance`),
+            where('date', '>=', format(adMonthStart, 'yyyy-MM-dd')),
+            where('date', '<=', format(adMonthEnd, 'yyyy-MM-dd'))
+        );
+        const attendanceSnapshot = await getDocs(attendanceQuery);
+        const monthlyAttendance = attendanceSnapshot.docs.map(d => d.data() as AttendanceRecord);
+        const holidayDateMap = new Map(holidays.map(h => [h.date, h.name]));
 
-      const dataToExport = studentsForReport.map(student => {
-        const rowData: { [key: string]: string | number } = {
-          'Student ID': student.studentId,
-          'Student Name': student.name,
-        };
-        if (classFilter === 'all') {
-          rowData['Class'] = student.class;
-        }
-        if (sectionFilter === 'all') {
-          rowData['Section'] = student.section;
-        }
+        let headers = ['Student ID', 'Student Name'];
+        if (classFilter === 'all') headers.push('Class');
+        if (sectionFilter === 'all') headers.push('Section');
 
-        let presentCount = 0;
-        let absentCount = 0;
-        let leaveCount = 0;
-  
-        dateColumns.forEach(bsDay => {
-          const bsDateToCheck = new NepaliDate(bsYear, bsMonth, parseInt(bsDay));
-          const adDateToCheck = bsDateToCheck.toJsDate();
-          adDateToCheck.setHours(0, 0, 0, 0);
-          const adDateStr = format(adDateToCheck, 'yyyy-MM-dd');
-  
-          if (adDateToCheck > todayAD) {
-            rowData[bsDay] = ''; // Leave future dates blank
-            return;
-          }
-  
-          if (adDateToCheck < adMonthStart || adDateToCheck > adMonthEnd) {
-             rowData[bsDay] = "-"; // Not part of the month
-             return;
-          }
-          
-          const holidayName = holidayDateMap.get(adDateStr);
-          if(holidayName) {
-            rowData[bsDay] = holidayName;
-            return;
-          }
+        const dateColumns = Array.from({ length: bsDaysInMonth }, (_, i) => (i + 1).toString());
+        headers.push(...dateColumns, 'Total Present', 'Total Absent', 'Total On Leave');
 
-          if (bsDateToCheck.getDay() === 6) { // 6 corresponds to Saturday in NepaliDate
-            rowData[bsDay] = 'Saturday';
-            return;
-          }
-          
-          const attendanceRecord = monthlyAttendance.find(
-            a => a.studentId === student.studentId && a.date === adDateStr
-          );
-  
-          if (attendanceRecord) {
-            if (attendanceRecord.status === 'present') {
-              rowData[bsDay] = 'P';
-              presentCount++;
-            } else {
-              rowData[bsDay] = 'L';
-              leaveCount++;
-            }
-          } else {
-            rowData[bsDay] = 'A';
-            absentCount++;
-          }
+        const studentsForReport = [...(students || [])].sort((a, b) => a.studentId.localeCompare(b.studentId));
+
+        const dataForSheet = studentsForReport.map(student => {
+            const rowData: { [key: string]: string | number } = {
+                'Student ID': student.studentId,
+                'Student Name': student.name,
+            };
+            if (classFilter === 'all') rowData['Class'] = student.class;
+            if (sectionFilter === 'all') rowData['Section'] = student.section;
+
+            let presentCount = 0, absentCount = 0, leaveCount = 0;
+
+            dateColumns.forEach(bsDay => {
+                const bsDateToCheck = new NepaliDate(bsYear, bsMonth, parseInt(bsDay));
+                const adDateToCheck = bsDateToCheck.toJsDate();
+                adDateToCheck.setHours(0, 0, 0, 0);
+                const adDateStr = format(adDateToCheck, 'yyyy-MM-dd');
+
+                if (adDateToCheck > todayAD) {
+                    rowData[bsDay] = '';
+                    return;
+                }
+                
+                const holidayName = holidayDateMap.get(adDateStr);
+                if (holidayName) {
+                    rowData[bsDay] = holidayName;
+                    return;
+                }
+
+                if (bsDateToCheck.getDay() === 6) {
+                    rowData[bsDay] = 'Saturday';
+                    return;
+                }
+
+                const attendanceRecord = monthlyAttendance.find(a => a.studentId === student.studentId && a.date === adDateStr);
+
+                if (attendanceRecord) {
+                    if (attendanceRecord.status === 'present') {
+                        rowData[bsDay] = 'P';
+                        presentCount++;
+                    } else {
+                        rowData[bsDay] = 'L';
+                        leaveCount++;
+                    }
+                } else {
+                    rowData[bsDay] = 'A';
+                    absentCount++;
+                }
+            });
+
+            rowData['Total Present'] = presentCount;
+            rowData['Total Absent'] = absentCount;
+            rowData['Total On Leave'] = leaveCount;
+            return rowData;
         });
 
-        rowData['Total Present'] = presentCount;
-        rowData['Total Absent'] = absentCount;
-        rowData['Total On Leave'] = leaveCount;
+        // Convert data to a worksheet
+        const worksheet = XLSX.utils.json_to_sheet(dataForSheet, { header: headers });
 
-        return rowData;
-      });
-  
-      const csv = Papa.unparse(dataToExport, {
-          columns: headers,
-      });
-  
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      let downloadFileName = `monthly_attendance_${bsYear}-${bsMonth + 1}`;
-      if (classFilter !== 'all') {
-        downloadFileName += `_${classFilter.replace(' ', '_')}`;
-      }
-      if (sectionFilter !== 'all') {
-        downloadFileName += `_${sectionFilter}`;
-      }
-      downloadFileName += '.csv';
+        // Set column widths
+        const colWidths = headers.map(header => {
+            if (['Student ID', 'Class', 'Section'].includes(header)) return { wch: 15 };
+            if (header === 'Student Name') return { wch: 25 };
+            if (!isNaN(parseInt(header))) return { wch: 5 }; // Date columns
+            if (header.startsWith('Total')) return { wch: 15 };
+            return { wch: 12 };
+        });
+        worksheet['!cols'] = colWidths;
 
-      link.setAttribute('href', url);
-      link.setAttribute('download', downloadFileName);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-  
+        // Create a new workbook and append the worksheet
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Monthly Attendance');
+
+        // Generate and download the XLSX file
+        let downloadFileName = `monthly_attendance_${bsYear}-${bsMonth + 1}`;
+        if (classFilter !== 'all') downloadFileName += `_${classFilter.replace(' ', '_')}`;
+        if (sectionFilter !== 'all') downloadFileName += `_${sectionFilter}`;
+        downloadFileName += '.xlsx';
+
+        XLSX.writeFile(workbook, downloadFileName);
+
     } catch (error) {
-      console.error('Failed to export monthly report:', error);
-      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not generate the monthly report.' });
+        console.error('Failed to export monthly report:', error);
+        toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not generate the monthly report.' });
     } finally {
-      setIsDownloading(false);
+        setIsDownloading(false);
     }
-  };
+};
 
   const handleOverallExport = async () => {
     if (!user || !allStudents) {
