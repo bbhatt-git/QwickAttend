@@ -32,6 +32,11 @@ export function UsbScanner() {
   const duplicateAudioRef = useRef<HTMLAudioElement | null>(null);
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  const activateScanner = () => {
+    inputRef.current?.focus();
+    setIsActive(true);
+  }
+
   // Preload audio and student data
   useEffect(() => {
     successAudioRef.current = new Audio('/sounds/success.mp3');
@@ -65,11 +70,6 @@ export function UsbScanner() {
     preloadData();
   }, [user, firestore, toast]);
 
-  const activateScanner = () => {
-    inputRef.current?.focus();
-    setIsActive(true);
-  }
-  
   useEffect(() => {
     if (!isDataLoading) {
       activateScanner();
@@ -104,7 +104,7 @@ export function UsbScanner() {
     setTimeout(() => {
       setLastResult(null);
       setScannedId('');
-      inputRef.current?.focus(); // Re-focus after feedback
+      activateScanner(); // Re-focus after feedback
     }, 1500);
   };
 
