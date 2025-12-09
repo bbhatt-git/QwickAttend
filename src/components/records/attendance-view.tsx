@@ -264,13 +264,14 @@ export default function AttendanceView() {
              return;
           }
           
-          if(holidayDateMap.has(adDateStr)) {
-            rowData[bsDay] = 'H';
+          const holidayName = holidayDateMap.get(adDateStr);
+          if(holidayName) {
+            rowData[bsDay] = holidayName;
             return;
           }
 
           if (bsDateToCheck.getDay() === 6) { // 6 corresponds to Saturday in NepaliDate
-            rowData[bsDay] = 'S';
+            rowData[bsDay] = 'Saturday';
             return;
           }
           
@@ -680,5 +681,7 @@ export default function AttendanceView() {
 
     
 
+
+    
 
     
