@@ -373,13 +373,12 @@ export default function AttendanceView() {
         const schoolOpenDateSet = new Set(schoolOpenDays.map(d => format(d, 'yyyy-MM-dd')));
 
         // 3. Process data for each student
-        const dataToExport = allStudents.map(student => {
+        const dataForSheet = allStudents.map(student => {
             const studentAttendance = allAttendance.filter(a => a.studentId === student.studentId);
             
             const presentDays = studentAttendance.filter(a => a.status === 'present').length;
             const onLeaveDays = studentAttendance.filter(a => a.status === 'on_leave').length;
             
-            // Calculate absent days only on days the school was open in the selected range
             const attendedDateSet = new Set(studentAttendance.map(a => a.date));
             const absentDays = Array.from(schoolOpenDateSet).filter(d => !attendedDateSet.has(d)).length;
 
@@ -395,17 +394,25 @@ export default function AttendanceView() {
             };
         });
 
-        // 4. Generate and download CSV
-        const csv = Papa.unparse(dataToExport);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        const start_date_str = summaryStartDate.format('YYYY_MM_DD');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `overall_attendance_summary_from_${start_date_str}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // 4. Generate and download Excel
+        const ws = XLSX.utils.json_to_sheet(dataForSheet);
+        
+        // Auto-fit columns
+        const columnWidths = Object.keys(dataForSheet[0] || {}).map(key => ({
+            wch: Math.max(
+                key.length,
+                ...dataForSheet.map(row => (row as any)[key] ? String((row as any)[key]).length : 0)
+            ) + 2 // Add a little padding
+        }));
+        ws['!cols'] = columnWidths;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Attendance Summary');
+
+        const startDateStr = summaryStartDate.format('YYYY_MM_DD');
+        const fileName = `overall_attendance_summary_from_${startDateStr}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
         setIsSummaryDialogOpen(false);
     } catch (error) {
         console.error('Failed to export overall report:', error);
@@ -683,6 +690,8 @@ export default function AttendanceView() {
 
     
 
+
+    
 
     
 
