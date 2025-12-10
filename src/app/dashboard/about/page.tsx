@@ -1,4 +1,5 @@
 
+'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail, Copyright, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -24,7 +25,7 @@ export default function AboutPage() {
                 </CardHeader>
                 <CardContent className="p-6 md:p-8 space-y-8">
                     
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-8">
                         {/* About the App Section */}
                         <div className="space-y-6">
                              <h2 className="text-2xl font-semibold flex items-center gap-2"><Info className='h-6 w-6' /> About the App</h2>
