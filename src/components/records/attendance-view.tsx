@@ -684,7 +684,7 @@ export default function AttendanceView() {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button variant="ghost" size="icon" onClick={() => handleMarkPresent(s)}>
-                                            <UserCheck className="h-4 w-4" />
+                                            <UserCheck className="h-4 w-4 text-green-500" />
                                             <span className="sr-only">Mark Present</span>
                                         </Button>
                                     </TooltipTrigger>
@@ -695,7 +695,7 @@ export default function AttendanceView() {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button variant="ghost" size="icon" onClick={() => openLeaveDialog(s)}>
-                                            <FileText className="h-4 w-4" />
+                                            <FileText className="h-4 w-4 text-yellow-500" />
                                             <span className="sr-only">Mark On Leave</span>
                                         </Button>
                                     </TooltipTrigger>
@@ -743,5 +743,7 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+    
 
     
