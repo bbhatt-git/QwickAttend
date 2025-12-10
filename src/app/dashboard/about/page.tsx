@@ -1,9 +1,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail, Copyright } from 'lucide-react';
+import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail, Copyright, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export default function AboutPage() {
     const appVersion = "1.0.0";
@@ -11,75 +12,88 @@ export default function AboutPage() {
 
     return (
         <div className="flex justify-center items-start p-4">
-            <Card className="w-full max-w-3xl shadow-lg">
-                <CardHeader className="text-center">
-                    <div className="inline-flex items-center justify-center gap-4 text-primary mb-4">
-                        <Fingerprint className="h-12 w-12" />
-                        <h1 className="text-5xl font-bold">QwickAttend</h1>
+            <Card className="w-full max-w-4xl shadow-lg">
+                <CardHeader className="text-center bg-muted/50 rounded-t-lg p-8">
+                    <div className="mx-auto w-fit bg-primary/10 p-4 rounded-full mb-4">
+                        <Fingerprint className="h-12 w-12 text-primary" />
                     </div>
-                    <CardDescription className="text-lg">
+                    <h1 className="text-4xl font-bold tracking-tight">QwickAttend</h1>
+                    <p className="text-lg text-muted-foreground mt-2">
                         The seamless attendance tracking solution for modern educators.
-                    </CardDescription>
+                    </p>
                 </CardHeader>
-                <CardContent className="space-y-8 pt-4">
+                <CardContent className="p-6 md:p-8 space-y-8">
                     
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-xl">
-                                <GitBranch className="h-5 w-5" />
-                                Version Information
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <p>Current version: <strong>{appVersion}</strong></p>
-                        </CardContent>
-                    </Card>
-                   
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-xl">About the Developer</CardTitle>
-                            <CardDescription>
-                                This application is developed and maintained by Bhupesh Raj Bhatt.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <a href="mailto:hello@bbhatt.com.np" className="flex items-center gap-3 text-primary hover:underline transition-colors">
-                                    <Mail className="h-5 w-5" />
-                                    <span>hello@bbhatt.com.np</span>
-                                </a>
-                                <a href="tel:+9779761184935" className="flex items-center gap-3 text-primary hover:underline transition-colors">
-                                   <Phone className="h-5 w-5" />
-                                   <span>+977 9761184935</span>
-                                </a>
-                            </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        {/* About the App Section */}
+                        <div className="space-y-6">
+                             <h2 className="text-2xl font-semibold flex items-center gap-2"><Info className='h-6 w-6' /> About the App</h2>
+                             <div className='p-6 rounded-lg border bg-background'>
+                                <p className="text-muted-foreground mb-4">
+                                    QwickAttend is designed to simplify and automate the attendance process for teachers, leveraging modern technology like QR codes and NFC to make tracking fast, accurate, and effortless.
+                                </p>
+                                <Separator />
+                                <div className='mt-4 space-y-2'>
+                                    <h3 className="font-semibold flex items-center gap-2"><GitBranch className="h-5 w-5" /> Version</h3>
+                                    <p className='text-sm text-muted-foreground'>Current version: <strong>{appVersion}</strong></p>
+                                </div>
+                             </div>
+                        </div>
 
-                            <Separator />
+                        {/* Developer Section */}
+                        <div className="space-y-6">
+                            <h2 className="text-2xl font-semibold">About the Developer</h2>
+                            <div className='p-6 rounded-lg border bg-background'>
+                                <div className="flex items-center space-x-4 mb-6">
+                                    <Avatar className="h-16 w-16">
+                                        <AvatarFallback className="text-2xl bg-primary text-primary-foreground">BR</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h3 className="text-xl font-bold">Bhupesh Raj Bhatt</h3>
+                                        <p className="text-sm text-muted-foreground">Lead Developer & Maintainer</p>
+                                    </div>
+                                </div>
 
-                            <div className="flex items-center justify-center gap-4">
-                                <Button asChild variant="outline" size="icon" className='rounded-full h-12 w-12 hover:bg-primary/10'>
-                                    <Link href="https://bbhatt.com.np" target="_blank" rel="noopener noreferrer" aria-label="Website">
-                                        <Globe className="h-6 w-6" />
-                                    </Link>
-                                </Button>
-                                <Button asChild variant="outline" size="icon" className='rounded-full h-12 w-12 hover:bg-primary/10'>
-                                    <Link href="https://www.facebook.com/share/1BnJr4X2Ec/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-                                        <Facebook className="h-6 w-6" />
-                                    </Link>
-                                </Button>
-                                <Button asChild variant="outline" size="icon" className='rounded-full h-12 w-12 hover:bg-primary/10'>
-                                     <Link href="https://github.com/bbhatt-git" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-                                        <Github className="h-6 w-6" />
-                                    </Link>
-                                </Button>
-                                <Button asChild variant="outline" size="icon" className='rounded-full h-12 w-12 hover:bg-primary/10'>
-                                    <Link href="https://www.instagram.com/_bbhatt?igsh=MWdjZnc3Y2t6bXp1bA==" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                                        <Instagram className="h-6 w-6" />
-                                    </Link>
-                                </Button>
+                                <div className="space-y-3 text-sm">
+                                    <a href="mailto:hello@bbhatt.com.np" className="flex items-center gap-3 text-primary hover:underline transition-colors">
+                                        <Mail className="h-5 w-5" />
+                                        <span>hello@bbhatt.com.np</span>
+                                    </a>
+                                    <a href="tel:+9779761184935" className="flex items-center gap-3 text-primary hover:underline transition-colors">
+                                       <Phone className="h-5 w-5" />
+                                       <span>+977 9761184935</span>
+                                    </a>
+                                </div>
+                                
+                                <Separator className="my-6" />
+
+                                <div className="flex items-center justify-center gap-4">
+                                    <Button asChild variant="outline" size="icon" className='rounded-full h-12 w-12 hover:bg-primary/10' title="Website">
+                                        <Link href="https://bbhatt.com.np" target="_blank" rel="noopener noreferrer">
+                                            <Globe className="h-6 w-6" />
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline" size="icon" className='rounded-full h-12 w-12 hover:bg-primary/10' title="Facebook">
+                                        <Link href="https://www.facebook.com/share/1BnJr4X2Ec/" target="_blank" rel="noopener noreferrer">
+                                            <Facebook className="h-6 w-6" />
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline" size="icon" className='rounded-full h-12 w-12 hover:bg-primary/10' title="GitHub">
+                                         <Link href="https://github.com/bbhatt-git" target="_blank" rel="noopener noreferrer">
+                                            <Github className="h-6 w-6" />
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline" size="icon" className='rounded-full h-12 w-12 hover:bg-primary/10' title="Instagram">
+                                        <Link href="https://www.instagram.com/_bbhatt?igsh=MWdjZnc3Y2t6bXp1bA==" target="_blank" rel="noopener noreferrer">
+                                            <Instagram className="h-6 w-6" />
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
+
+                    <Separator />
 
                     <div className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2 pt-4">
                         <Copyright className="h-4 w-4" />
