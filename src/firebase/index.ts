@@ -13,12 +13,14 @@ export function initializeFirebase() {
   if (!getApps().length) {
     let firebaseApp;
     try {
-      firebaseApp = initializeApp();
+      // Pass the config object here
+      firebaseApp = initializeApp(firebaseConfig);
     } catch (e) {
       if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+        console.warn('Initialization with config object failed.', e);
       }
-      firebaseApp = initializeApp(firebaseConfig);
+      // This fallback is less likely to be needed now but kept for safety.
+      firebaseApp = initializeApp({});
     }
     
     return getSdks(firebaseApp);
