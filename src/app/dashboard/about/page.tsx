@@ -51,7 +51,7 @@ export default function AboutPage() {
                                     </Avatar>
                                     <div>
                                         <h3 className="text-xl font-bold">Bhupesh Raj Bhatt</h3>
-                                        <p className="text-sm text-muted-foreground">Lead Developer & Maintainer</p>
+                                        <p className="text-sm text-muted-foreground">Developer & Maintainer</p>
                                     </div>
                                 </div>
 
