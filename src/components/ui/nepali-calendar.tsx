@@ -76,8 +76,7 @@ const MonthView = ({
     for (let i = 1; i <= daysInMonth; i++) {
         const currentDate = new NepaliDate(year, month, i);
         const isToday = isSameDate(today, currentDate, 'day');
-        const isDisabled = currentDate.toJsDate() > new Date() && !isToday;
-
+        
         let isSelected = false;
         let isRangeStart = false;
         let isRangeEnd = false;
@@ -98,7 +97,6 @@ const MonthView = ({
         days.push(
             <button
               key={i}
-              disabled={isDisabled}
               onClick={() => onDayClick(currentDate)}
               onMouseEnter={() => mode === 'range' && setHoveredDate(currentDate)}
               onMouseLeave={() => mode === 'range' && setHoveredDate(null)}
@@ -106,8 +104,7 @@ const MonthView = ({
                 buttonVariants({ variant: "ghost" }),
                 "h-9 w-9 p-0 font-normal",
                 isToday && "bg-accent text-accent-foreground",
-                isDisabled && "text-muted-foreground opacity-50 cursor-not-allowed",
-                !isSelected && !isToday && !isDisabled && "hover:bg-accent hover:text-accent-foreground",
+                !isSelected && !isToday && "hover:bg-accent hover:text-accent-foreground",
                 
                 // Range-specific styles
                 mode === 'range' && isInRange && "bg-accent text-accent-foreground rounded-none",
