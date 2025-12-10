@@ -35,7 +35,6 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '../ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Textarea } from '../ui/textarea';
 
@@ -62,8 +61,6 @@ export default function AttendanceView() {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [studentForLeave, setStudentForLeave] = useState<Student | null>(null);
   const [leaveReason, setLeaveReason] = useState('');
-  const [selectedAbsentStudents, setSelectedAbsentStudents] = useState<Set<string>>(new Set());
-  const [bulkLeaveDialogOpen, setBulkLeaveDialogOpen] = useState(false);
 
 
   // State for summary report dialog
@@ -217,52 +214,6 @@ export default function AttendanceView() {
     setStudentForLeave(student);
     setLeaveDialogOpen(true);
   }
-
-  const handleSelectAbsentStudent = (studentId: string) => {
-    setSelectedAbsentStudents(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(studentId)) {
-            newSet.delete(studentId);
-        } else {
-            newSet.add(studentId);
-        }
-        return newSet;
-    });
-  };
-
-  const handleBulkMarkAsLeave = async () => {
-    if (!user || !adDate || selectedAbsentStudents.size === 0) return;
-    
-    try {
-        const batch = writeBatch(firestore);
-        const attendanceCollection = collection(firestore, `teachers/${user.uid}/attendance`);
-        const dateStr = format(adDate, 'yyyy-MM-dd');
-        const now = Timestamp.now();
-
-        selectedAbsentStudents.forEach(studentId => {
-            const newDocRef = doc(attendanceCollection);
-            batch.set(newDocRef, {
-                studentId: studentId,
-                teacherId: user.uid,
-                date: dateStr,
-                timestamp: now,
-                status: 'on_leave',
-                leaveReason: leaveReason || 'Not specified'
-            });
-        });
-        
-        await batch.commit();
-        toast({ title: 'Success', description: `${selectedAbsentStudents.size} students marked as on leave.` });
-        setRefetchTrigger(c => c + 1);
-        setSelectedAbsentStudents(new Set());
-    } catch (error) {
-        console.error("Error bulk marking as leave:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not mark students as leave. Please try again.' });
-    } finally {
-        setBulkLeaveDialogOpen(false);
-        setLeaveReason('');
-    }
-  };
 
   const handleMonthlyExport = async () => {
     if (!bsDate || !user) return;
@@ -697,20 +648,6 @@ export default function AttendanceView() {
                         <CardTitle className='flex items-center gap-2'><UserX className="text-red-500" /> Absent ({absentStudents.length})</CardTitle>
                         <CardDescription>Students not marked present or on leave.</CardDescription>
                     </div>
-                    {selectedAbsentStudents.size > 0 && (
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon">
-                                    <MoreVertical className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onSelect={() => setBulkLeaveDialogOpen(true)}>
-                                    Mark Selected as On Leave
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
                 </div>
             </CardHeader>
             <CardContent>
@@ -719,13 +656,7 @@ export default function AttendanceView() {
                     <ul className="space-y-2">
                         {absentStudents.map(s => (
                         <li key={s.id} className="text-sm p-2 rounded-md bg-red-100 dark:bg-red-900/50 flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                                <Checkbox
-                                    id={`select-${s.id}`}
-                                    checked={selectedAbsentStudents.has(s.studentId)}
-                                    onCheckedChange={() => handleSelectAbsentStudent(s.studentId)}
-                                />
-                                <div className="flex-1">
+                            <div className="flex-1">
                                 {s.name}
                                 {s.contact && (
                                     <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
@@ -733,7 +664,6 @@ export default function AttendanceView() {
                                     <a href={`tel:${s.contact}`} className="hover:underline">{s.contact}</a>
                                     </div>
                                 )}
-                                </div>
                             </div>
                             <div className="flex items-center gap-1">
                                 {s.contact && (
@@ -780,30 +710,6 @@ export default function AttendanceView() {
         </DialogContent>
      </Dialog>
 
-     {/* Bulk student leave dialog */}
-     <Dialog open={bulkLeaveDialogOpen} onOpenChange={setBulkLeaveDialogOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Mark {selectedAbsentStudents.size} Students as On Leave</DialogTitle>
-                <DialogDescription>
-                    Provide a reason for the absence. This reason will be applied to all selected students.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <Label htmlFor="bulk-leave-reason">Reason</Label>
-                <Textarea
-                    id="bulk-leave-reason"
-                    value={leaveReason}
-                    onChange={(e) => setLeaveReason(e.target.value)}
-                    placeholder="e.g., School event, Field trip"
-                />
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => { setBulkLeaveDialogOpen(false); setLeaveReason(''); }}>Cancel</Button>
-                <Button onClick={handleBulkMarkAsLeave}>Confirm for {selectedAbsentStudents.size} students</Button>
-            </DialogFooter>
-        </DialogContent>
-     </Dialog>
     </div>
   );
 }
