@@ -457,7 +457,7 @@ export default function StudentHistoryView() {
             </div>
 
             <Card>
-                <CardHeader className="flex-row items-center justify-between">
+                <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className='space-y-1'>
                          <CardTitle>Attendance Log</CardTitle>
                          <CardDescription>{new NepaliDate(displayDate).format('MMMM YYYY')}</CardDescription>
