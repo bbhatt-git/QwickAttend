@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { format, isValid, eachDayOfInterval, startOfDay } from 'date-fns';
-import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff, FileText, FileDown, MoreVertical } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, Loader2, UserCheck, UserX, UserMinus, Phone, ChevronLeft, ChevronRight, MessageSquare, CalendarOff, FileText, FileDown, MoreVertical, Search } from 'lucide-react';
 import Papa from 'papaparse';
 import NepaliDate from 'nepali-date-converter';
 import * as XLSX from 'xlsx';
@@ -13,6 +13,8 @@ import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, deleteDo
 import type { Student, AttendanceRecord, Holiday } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { SECTIONS } from '@/lib/constants';
+import { useDebounce } from '@/hooks/use-debounce';
+
 
 import { Button } from '@/components/ui/button';
 import { NepaliCalendar } from '@/components/ui/nepali-calendar';
@@ -57,6 +59,8 @@ export default function AttendanceView() {
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [sectionFilter, setSectionFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // State for manual actions
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -133,8 +137,12 @@ export default function AttendanceView() {
     
     const presentStudentIds = new Set(present.map(a => a.studentId));
     const onLeaveStudentIds = new Set(onLeave.map(a => a.studentId));
+    
+    const searchFilteredStudents = students.filter(s => 
+      s.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
 
-    const presentWithName = students
+    const presentWithName = searchFilteredStudents
         .filter(s => presentStudentIds.has(s.studentId))
         .map(s => {
             const att = present.find(a => a.studentId === s.studentId);
@@ -142,7 +150,7 @@ export default function AttendanceView() {
             return {...s, attendanceTime: attendanceTimestamp?.toDate(), attendanceId: att!.id};
         });
 
-    const onLeaveWithName = students
+    const onLeaveWithName = searchFilteredStudents
         .filter(s => onLeaveStudentIds.has(s.studentId))
         .map(s => {
             const att = onLeave.find(a => a.studentId === s.studentId);
@@ -150,10 +158,10 @@ export default function AttendanceView() {
         });
 
 
-    const absent = students.filter(s => !presentStudentIds.has(s.studentId) && !onLeaveStudentIds.has(s.studentId));
+    const absent = searchFilteredStudents.filter(s => !presentStudentIds.has(s.studentId) && !onLeaveStudentIds.has(s.studentId));
 
     return { presentStudents: presentWithName, absentStudents: absent, onLeaveStudents: onLeaveWithName };
-  }, [students, attendance, todayHoliday, isSaturday]);
+  }, [students, attendance, todayHoliday, isSaturday, debouncedSearchTerm]);
   
   const handleMarkAsLeave = async () => {
     if (!user || !adDate || !studentForLeave) return;
@@ -520,6 +528,15 @@ export default function AttendanceView() {
               <ChevronRight className="h-4 w-4" />
             </Button>
             </div>
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search students..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full sm:w-[200px] lg:w-[250px]"
+              />
+            </div>
           <Select value={classFilter} onValueChange={setClassFilter}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by class" />
@@ -595,7 +612,7 @@ export default function AttendanceView() {
             </CardHeader>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
             <CardHeader>
                 <CardTitle className='flex items-center gap-2'><UserCheck className="text-green-500" /> Present ({presentStudents.length})</CardTitle>
@@ -743,6 +760,8 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+    
 
     
 
