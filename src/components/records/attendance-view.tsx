@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Textarea } from '../ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 export default function AttendanceView() {
@@ -651,6 +652,7 @@ export default function AttendanceView() {
                 </div>
             </CardHeader>
             <CardContent>
+            <TooltipProvider>
             <ScrollArea className="h-72">
                 {pageIsLoading ? <Skeleton className="h-full w-full"/> : absentStudents.length > 0 ? (
                     <ul className="space-y-2">
@@ -667,19 +669,47 @@ export default function AttendanceView() {
                             </div>
                             <div className="flex items-center gap-1">
                                 {s.contact && (
-                                    <Button variant="secondary" size="sm" onClick={() => handleNotifyParent(s)}>
-                                    <MessageSquare className="h-3 w-3" />
-                                    <span className="sr-only">Notify Parent</span>
-                                    </Button>
+                                     <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <Button variant="ghost" size="icon" onClick={() => handleNotifyParent(s)}>
+                                                <MessageSquare className="h-4 w-4" />
+                                                <span className="sr-only">Notify Parent</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Notify Parent</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 )}
-                                <Button variant="secondary" size="sm" onClick={() => handleMarkPresent(s)}>Present</Button>
-                                <Button variant="outline" size="sm" onClick={() => openLeaveDialog(s)}>Leave</Button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => handleMarkPresent(s)}>
+                                            <UserCheck className="h-4 w-4" />
+                                            <span className="sr-only">Mark Present</span>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Mark Present</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => openLeaveDialog(s)}>
+                                            <FileText className="h-4 w-4" />
+                                            <span className="sr-only">Mark On Leave</span>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Mark On Leave</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
                         </li>
                         ))}
                     </ul>
                 ) : <p className="text-sm text-muted-foreground text-center pt-10">All students are accounted for!</p>}
                 </ScrollArea>
+                </TooltipProvider>
             </CardContent>
             </Card>
         </div>
@@ -713,3 +743,5 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+    
