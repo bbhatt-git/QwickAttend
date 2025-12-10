@@ -498,7 +498,7 @@ export default function AttendanceView() {
 
   return (
     <div className="space-y-6">
-       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
                 <div className="flex items-center">
                     <Button variant="outline" size="icon" onClick={() => handleDateChange('prev')} className="h-10 w-10 rounded-r-none">
@@ -560,7 +560,7 @@ export default function AttendanceView() {
                     </SelectContent>
                 </Select>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 flex-wrap justify-start flex-shrink-0">
                 <Button onClick={handleMonthlyExport} disabled={isDownloading} variant="outline">
                     {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                     Monthly Report
