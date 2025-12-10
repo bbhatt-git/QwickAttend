@@ -498,105 +498,105 @@ export default function AttendanceView() {
 
   return (
     <div className="space-y-6">
-       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center">
-            <Button variant="outline" size="icon" onClick={() => handleDateChange('prev')} className="h-10 w-10 rounded-r-none">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[280px] justify-start text-left font-normal rounded-none",
-                    !bsDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {bsDate ? `BS: ${bsDate.format('DD, MMMM YYYY')}` : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                 <NepaliCalendar
-                  value={bsDate}
-                  onSelect={setBsDate}
-                />
-              </PopoverContent>
-            </Popover>
-            <Button variant="outline" size="icon" onClick={() => handleDateChange('next')} disabled={isToday} className="h-10 w-10 rounded-l-none">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            </div>
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search students..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full sm:w-[200px] lg:w-[250px]"
-              />
-            </div>
-          <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filter by class" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Classes</SelectItem>
-                {uniqueClasses.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          <Select value={sectionFilter} onValueChange={setSectionFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filter by section" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sections</SelectItem>
-                {SECTIONS.map(section => (
-                    <SelectItem key={section} value={section}>{section}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-            <Button onClick={handleMonthlyExport} disabled={isDownloading}>
-                {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Download Monthly Report
-            </Button>
-             <Dialog open={isSummaryDialogOpen} onOpenChange={setIsSummaryDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="secondary">
-                        <FileDown className="mr-2 h-4 w-4" />
-                        Download Summary Report
+       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+                <div className="flex items-center">
+                    <Button variant="outline" size="icon" onClick={() => handleDateChange('prev')} className="h-10 w-10 rounded-r-none">
+                        <ChevronLeft className="h-4 w-4" />
                     </Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Download Attendance Summary</DialogTitle>
-                        <DialogDescription>
-                            Please select the start date for the summary report. The report will include data from this date up to today.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-center py-4">
-                        <NepaliCalendar
-                            mode="single"
-                            value={summaryStartDate}
-                            onSelect={(date) => date && setSummaryStartDate(date)}
-                        />
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSummaryDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleOverallExport} disabled={isDownloadingOverall}>
-                            {isDownloadingOverall ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full sm:w-[240px] justify-start text-left font-normal rounded-none",
+                                !bsDate && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {bsDate ? `BS: ${bsDate.format('DD, MMMM YYYY')}` : <span>Pick a date</span>}
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <NepaliCalendar
+                            value={bsDate}
+                            onSelect={setBsDate}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <Button variant="outline" size="icon" onClick={() => handleDateChange('next')} disabled={isToday} className="h-10 w-10 rounded-l-none">
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+                <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search students..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-full sm:w-[200px] lg:w-[250px]"
+                    />
+                </div>
+                <Select value={classFilter} onValueChange={setClassFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Classes</SelectItem>
+                        {uniqueClasses.map(c => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select value={sectionFilter} onValueChange={setSectionFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Sections</SelectItem>
+                        {SECTIONS.map(section => (
+                            <SelectItem key={section} value={section}>{section}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+                <Button onClick={handleMonthlyExport} disabled={isDownloading} variant="outline">
+                    {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Monthly Report
+                </Button>
+                <Dialog open={isSummaryDialogOpen} onOpenChange={setIsSummaryDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Summary Report
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Download Attendance Summary</DialogTitle>
+                            <DialogDescription>
+                                Please select the start date for the summary report. The report will include data from this date up to today.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex justify-center py-4">
+                            <NepaliCalendar
+                                mode="single"
+                                value={summaryStartDate}
+                                onSelect={(date) => date && setSummaryStartDate(date)}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsSummaryDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleOverallExport} disabled={isDownloadingOverall}>
+                                {isDownloadingOverall ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                Download
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
-      </div>
       {todayHoliday ? (
         <Card className="text-center p-8">
             <CardHeader>
@@ -760,6 +760,8 @@ export default function AttendanceView() {
     </div>
   );
 }
+
+    
 
     
 
