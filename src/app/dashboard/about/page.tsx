@@ -1,7 +1,7 @@
 
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail, Copyright, Info } from 'lucide-react';
+import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail, Copyright, Info, QrCode, Nfc, LayoutDashboard, User, CalendarOff } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +10,34 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 export default function AboutPage() {
     const appVersion = "1.0.0";
     const currentYear = new Date().getFullYear();
+
+    const features = [
+        {
+            icon: <QrCode className="h-6 w-6 text-primary" />,
+            title: "Effortless QR Scanning",
+            description: "Use your device's camera to scan student QR codes instantly."
+        },
+        {
+            icon: <Nfc className="h-6 w-6 text-primary" />,
+            title: "NFC Tag Support",
+            description: "Take attendance with a tap using in-built or external NFC readers."
+        },
+        {
+            icon: <LayoutDashboard className="h-6 w-6 text-primary" />,
+            title: "Real-time Dashboard",
+            description: "Get an immediate overview of today's attendance statistics."
+        },
+        {
+            icon: <User className="h-6 w-6 text-primary" />,
+            title: "Student Records",
+            description: "View and manage student information and attendance history."
+        },
+        {
+            icon: <CalendarOff className="h-6 w-6 text-primary" />,
+            title: "Holiday Management",
+            description: "Easily schedule single or multi-day school holidays."
+        }
+    ];
 
     return (
         <div className="flex justify-center items-start p-4">
@@ -40,6 +68,25 @@ export default function AboutPage() {
                                 </div>
                              </div>
                         </div>
+
+                        {/* Key Features Section */}
+                        <div className="space-y-6">
+                            <h2 className="text-2xl font-semibold">Key Features</h2>
+                            <div className='p-6 rounded-lg border bg-background grid gap-6 md:grid-cols-2'>
+                               {features.map((feature, index) => (
+                                 <div key={index} className="flex items-start gap-4">
+                                    <div className="bg-primary/10 p-3 rounded-full">
+                                        {feature.icon}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold">{feature.title}</h3>
+                                        <p className="text-sm text-muted-foreground">{feature.description}</p>
+                                    </div>
+                                 </div>
+                               ))}
+                            </div>
+                        </div>
+
 
                         {/* Developer Section */}
                         <div className="space-y-6">
