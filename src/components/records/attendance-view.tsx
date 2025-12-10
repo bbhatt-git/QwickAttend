@@ -643,7 +643,7 @@ export default function AttendanceView() {
             </CardHeader>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
             <CardHeader>
                 <CardTitle className='flex items-center gap-2'><UserCheck className="text-green-500" /> Present ({presentStudents.length})</CardTitle>
