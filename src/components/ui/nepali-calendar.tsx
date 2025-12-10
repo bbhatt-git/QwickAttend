@@ -6,7 +6,6 @@ import NepaliDate from "nepali-date-converter";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface DateRange {
   from?: NepaliDate;
@@ -151,8 +150,7 @@ type NepaliCalendarProps = {
 
 
 export function NepaliCalendar({ mode = "single", value, onSelect, ...props }: NepaliCalendarProps) {
-  const isMobile = useIsMobile();
-  const numberOfMonths = props.numberOfMonths ?? (mode === 'range' && !isMobile ? 2 : 1);
+  const numberOfMonths = 1;
   
   const [viewDate, setViewDate] = React.useState(
     (mode === "single" ? value as NepaliDate : (value as DateRange)?.from) || new NepaliDate()
@@ -213,7 +211,7 @@ export function NepaliCalendar({ mode = "single", value, onSelect, ...props }: N
           </Button>
       </div>
      
-      <div className={cn("flex", numberOfMonths === 1 ? "flex-col" : "gap-4")}>
+      <div className={cn("flex flex-col")}>
         <MonthView 
             viewDate={viewDate}
             value={value}
@@ -222,17 +220,6 @@ export function NepaliCalendar({ mode = "single", value, onSelect, ...props }: N
             setHoveredDate={setHoveredDate}
             mode={mode}
         />
-
-        {numberOfMonths > 1 && (
-            <MonthView 
-                viewDate={getNextMonthDate(viewDate)}
-                value={value}
-                onDayClick={handleDayClick}
-                hoveredDate={hoveredDate}
-                setHoveredDate={setHoveredDate}
-                mode={mode}
-            />
-        )}
       </div>
     </div>
   );
