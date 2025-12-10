@@ -1,7 +1,7 @@
 
 'use client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail, Copyright, Info, QrCode, Nfc, LayoutDashboard, User, CalendarOff } from 'lucide-react';
+import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail, Copyright, Info, QrCode, Nfc, LayoutDashboard, User, CalendarOff, FileText, Download } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -36,6 +36,16 @@ export default function AboutPage() {
             icon: <CalendarOff className="h-6 w-6 text-primary" />,
             title: "Holiday Management",
             description: "Easily schedule single or multi-day school holidays."
+        },
+        {
+            icon: <FileText className="h-6 w-6 text-primary" />,
+            title: "Comprehensive Reports",
+            description: "View detailed attendance logs by day or individual student history."
+        },
+        {
+            icon: <Download className="h-6 w-6 text-primary" />,
+            title: "Data Export",
+            description: "Export monthly or summary attendance reports to PDF and Excel."
         }
     ];
 
