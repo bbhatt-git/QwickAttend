@@ -388,7 +388,6 @@ export default function StudentHistoryView() {
             </PopoverTrigger>
             <PopoverContent className="w-[300px] p-0" side="bottom" align="start">
                 <Command>
-                <CommandInput placeholder="Search student..." />
                 <CommandList>
                     <CommandEmpty>No student found.</CommandEmpty>
                     <CommandGroup>
@@ -409,6 +408,7 @@ export default function StudentHistoryView() {
                     ))}
                     </CommandGroup>
                 </CommandList>
+                <CommandInput placeholder="Search student..." />
                 </Command>
             </PopoverContent>
             </Popover>
@@ -515,6 +515,8 @@ export default function StudentHistoryView() {
 }
 
 
+
+    
 
     
 
