@@ -50,36 +50,36 @@ export default function AboutPage() {
     ];
 
     return (
-        <div className="flex justify-center items-start p-4">
+        <div className="flex justify-center items-start p-2 sm:p-4">
             <Card className="w-full max-w-4xl shadow-lg">
-                <CardHeader className="text-center bg-muted/50 rounded-t-lg p-8">
+                <CardHeader className="text-center bg-muted/50 rounded-t-lg p-6 md:p-8">
                     <div className="mx-auto w-fit bg-primary/10 p-4 rounded-full mb-4">
                         <Fingerprint className="h-12 w-12 text-primary" />
                     </div>
-                    <h1 className="text-4xl font-bold tracking-tight">QwickAttend</h1>
-                    <p className="text-lg text-muted-foreground mt-2">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight">QwickAttend</h1>
+                    <p className="text-md md:text-lg text-muted-foreground mt-2">
                         The seamless attendance tracking solution for modern educators.
                     </p>
                 </CardHeader>
-                <CardContent className="p-6 md:p-8 space-y-8">
+                <CardContent className="p-4 md:p-8 space-y-8">
                     
                     <div className="space-y-8">
 
                         {/* Developer Section */}
                         <div className="space-y-6">
-                            <h2 className="text-2xl font-semibold">About the Developer</h2>
-                            <div className='p-6 rounded-lg border bg-background'>
-                                <div className="flex items-center space-x-4 mb-6">
+                            <h2 className="text-xl md:text-2xl font-semibold">About the Developer</h2>
+                            <div className='p-4 md:p-6 rounded-lg border bg-background'>
+                                <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
                                     <Avatar className="h-16 w-16">
                                         <AvatarFallback className="text-2xl bg-primary text-primary-foreground">BR</AvatarFallback>
                                     </Avatar>
-                                    <div>
+                                    <div className="text-center sm:text-left">
                                         <h3 className="text-xl font-bold">Bhupesh Raj Bhatt</h3>
                                         <p className="text-sm text-muted-foreground">Developer & Maintainer</p>
                                     </div>
                                 </div>
 
-                                <div className="space-y-3 text-sm">
+                                <div className="space-y-3 text-sm flex flex-col items-center sm:items-start">
                                     <a href="mailto:hello@bbhatt.com.np" className="flex items-center gap-3 text-primary hover:underline transition-colors">
                                         <Mail className="h-5 w-5" />
                                         <span>hello@bbhatt.com.np</span>
@@ -119,8 +119,8 @@ export default function AboutPage() {
 
                         {/* About the App Section */}
                         <div className="space-y-6">
-                             <h2 className="text-2xl font-semibold flex items-center gap-2"><Info className='h-6 w-6' /> About the App</h2>
-                             <div className='p-6 rounded-lg border bg-background'>
+                             <h2 className="text-xl md:text-2xl font-semibold flex items-center gap-2"><Info className='h-6 w-6' /> About the App</h2>
+                             <div className='p-4 md:p-6 rounded-lg border bg-background'>
                                 <p className="text-muted-foreground mb-4">
                                     QwickAttend is designed to simplify and automate the attendance process for teachers, leveraging modern technology like QR codes and NFC to make tracking fast, accurate, and effortless.
                                 </p>
@@ -134,8 +134,8 @@ export default function AboutPage() {
 
                         {/* Key Features Section */}
                         <div className="space-y-6">
-                            <h2 className="text-2xl font-semibold">Key Features</h2>
-                            <div className='p-6 rounded-lg border bg-background grid gap-6 md:grid-cols-2'>
+                            <h2 className="text-xl md:text-2xl font-semibold">Key Features</h2>
+                            <div className='p-4 md:p-6 rounded-lg border bg-background grid gap-6 grid-cols-1 sm:grid-cols-2'>
                                {features.map((feature, index) => (
                                  <div key={index} className="flex items-start gap-4">
                                     <div className="bg-primary/10 p-3 rounded-full">
