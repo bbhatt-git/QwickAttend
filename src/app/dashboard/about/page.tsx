@@ -1,6 +1,6 @@
 
 'use client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Globe, Facebook, Github, Instagram, Fingerprint, GitBranch, Phone, Mail, Copyright, Info, QrCode, Nfc, LayoutDashboard, User, CalendarOff } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -54,39 +54,6 @@ export default function AboutPage() {
                 <CardContent className="p-6 md:p-8 space-y-8">
                     
                     <div className="space-y-8">
-                        {/* About the App Section */}
-                        <div className="space-y-6">
-                             <h2 className="text-2xl font-semibold flex items-center gap-2"><Info className='h-6 w-6' /> About the App</h2>
-                             <div className='p-6 rounded-lg border bg-background'>
-                                <p className="text-muted-foreground mb-4">
-                                    QwickAttend is designed to simplify and automate the attendance process for teachers, leveraging modern technology like QR codes and NFC to make tracking fast, accurate, and effortless.
-                                </p>
-                                <Separator />
-                                <div className='mt-4 space-y-2'>
-                                    <h3 className="font-semibold flex items-center gap-2"><GitBranch className="h-5 w-5" /> Version</h3>
-                                    <p className='text-sm text-muted-foreground'>Current version: <strong>{appVersion}</strong></p>
-                                </div>
-                             </div>
-                        </div>
-
-                        {/* Key Features Section */}
-                        <div className="space-y-6">
-                            <h2 className="text-2xl font-semibold">Key Features</h2>
-                            <div className='p-6 rounded-lg border bg-background grid gap-6 md:grid-cols-2'>
-                               {features.map((feature, index) => (
-                                 <div key={index} className="flex items-start gap-4">
-                                    <div className="bg-primary/10 p-3 rounded-full">
-                                        {feature.icon}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold">{feature.title}</h3>
-                                        <p className="text-sm text-muted-foreground">{feature.description}</p>
-                                    </div>
-                                 </div>
-                               ))}
-                            </div>
-                        </div>
-
 
                         {/* Developer Section */}
                         <div className="space-y-6">
@@ -137,6 +104,39 @@ export default function AboutPage() {
                                         </Link>
                                     </Button>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* About the App Section */}
+                        <div className="space-y-6">
+                             <h2 className="text-2xl font-semibold flex items-center gap-2"><Info className='h-6 w-6' /> About the App</h2>
+                             <div className='p-6 rounded-lg border bg-background'>
+                                <p className="text-muted-foreground mb-4">
+                                    QwickAttend is designed to simplify and automate the attendance process for teachers, leveraging modern technology like QR codes and NFC to make tracking fast, accurate, and effortless.
+                                </p>
+                                <Separator />
+                                <div className='mt-4 space-y-2'>
+                                    <h3 className="font-semibold flex items-center gap-2"><GitBranch className="h-5 w-5" /> Version</h3>
+                                    <p className='text-sm text-muted-foreground'>Current version: <strong>{appVersion}</strong></p>
+                                </div>
+                             </div>
+                        </div>
+
+                        {/* Key Features Section */}
+                        <div className="space-y-6">
+                            <h2 className="text-2xl font-semibold">Key Features</h2>
+                            <div className='p-6 rounded-lg border bg-background grid gap-6 md:grid-cols-2'>
+                               {features.map((feature, index) => (
+                                 <div key={index} className="flex items-start gap-4">
+                                    <div className="bg-primary/10 p-3 rounded-full">
+                                        {feature.icon}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold">{feature.title}</h3>
+                                        <p className="text-sm text-muted-foreground">{feature.description}</p>
+                                    </div>
+                                 </div>
+                               ))}
                             </div>
                         </div>
                     </div>
