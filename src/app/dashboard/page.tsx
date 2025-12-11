@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, UserCheck, UserX, UserMinus, Usb, QrCode, CalendarOff, CalendarClock, ArrowRight } from 'lucide-react';
+import { Users, UserCheck, UserX, UserMinus, Usb, QrCode, CalendarOff, CalendarClock, Heart } from 'lucide-react';
 import WelcomeHeader from '@/components/dashboard/welcome-header';
 
 export default function DashboardPage() {
@@ -69,10 +69,10 @@ export default function DashboardPage() {
   ];
 
   const quickLinks = [
-    { href: '/dashboard/nfc/external', title: 'External Scan', description: 'Use a USB scanner.', icon: Usb },
-    { href: '/dashboard/scan', title: 'QR Scan', description: 'Use your device camera.', icon: QrCode },
-    { href: '/dashboard/holidays', title: 'Manage Holidays', description: 'Add or remove holidays.', icon: CalendarOff },
-    { href: '/dashboard/records', title: 'View Records', description: 'Check attendance history.', icon: CalendarClock },
+    { href: '/dashboard/nfc/external', title: 'External Scan', description: 'Use a USB scanner.' },
+    { href: '/dashboard/scan', title: 'QR Scan', description: 'Use your device camera.' },
+    { href: '/dashboard/holidays', title: 'Manage Holidays', description: 'Add or remove holidays.' },
+    { href: '/dashboard/records', title: 'View Records', description: 'Check attendance history.' },
   ]
 
   return (
@@ -113,23 +113,37 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight mb-4">Quick Links</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {quickLinks.map(link => (
-             <Card key={link.href} className="hover:bg-muted/50 transition-colors">
-              <Link href={link.href}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{link.title}</CardTitle>
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <link.icon className="h-5 w-5" />
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-xs text-muted-foreground">{link.description}</p>
-                </CardContent>
-              </Link>
-            </Card>
-          ))}
+          {quickLinks.map((link, index) => {
+            const Icon = [Usb, QrCode, CalendarOff, CalendarClock][index];
+            return (
+                <Card key={link.href} className="hover:bg-muted/50 transition-colors">
+                    <Link href={link.href}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">{link.title}</CardTitle>
+                            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                <Icon className="h-5 w-5" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-xs text-muted-foreground">{link.description}</p>
+                        </CardContent>
+                    </Link>
+                </Card>
+            )
+           })}
         </div>
       </div>
+      <footer className="pt-8 text-center text-sm text-muted-foreground">
+        Built with <Heart className="inline-block h-4 w-4 -mt-1 text-red-500 fill-red-500" /> by{' '}
+        <a 
+          href="https://bbhatt.com.np" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Bhupesh Raj Bhatt
+        </a>
+      </footer>
     </div>
   );
 }
