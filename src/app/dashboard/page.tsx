@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -16,6 +17,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, UserCheck, UserX, UserMinus, Usb, QrCode, CalendarOff, CalendarClock, Heart } from 'lucide-react';
 import WelcomeHeader from '@/components/dashboard/welcome-header';
+import { Separator } from '@/components/ui/separator';
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -75,7 +77,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col h-full">
       <div className="flex-grow space-y-6">
         <WelcomeHeader />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -134,16 +136,19 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-      <footer className="pt-8 text-center text-sm text-muted-foreground">
-        Built with <Heart className="inline-block h-4 w-4 -mt-1 text-red-500 fill-red-500" /> by{' '}
-        <a 
-          href="https://bbhatt.com.np" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Bhupesh Raj Bhatt
-        </a>
+      <footer className="mt-auto pt-6">
+        <Separator />
+        <div className="py-4 text-center text-sm text-muted-foreground">
+            Built with <Heart className="inline-block h-4 w-4 -mt-1 text-red-500 fill-red-500" /> by{' '}
+            <a 
+            href="https://bbhatt.com.np" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+            Bhupesh Raj Bhatt
+            </a>
+        </div>
       </footer>
     </div>
   );

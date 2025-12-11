@@ -31,9 +31,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <StudentProvider>
       <div className="min-h-screen w-full">
         <MainSidebar />
-        <div className="flex flex-col md:ml-[220px] lg:ml-[280px] min-h-screen">
+        <div className="flex flex-col md:ml-[220px] lg:ml-[280px] h-screen">
           <Header />
-          <main className="flex flex-1 flex-col gap-4 bg-muted/40 p-4 lg:gap-6 lg:p-6">
+          <main className="flex flex-1 flex-col gap-4 bg-muted/40 p-4 lg:gap-6 lg:p-6 overflow-auto">
             <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
               {children}
             </Suspense>
