@@ -76,61 +76,63 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <WelcomeHeader />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-8 w-8 rounded-lg" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16 mt-2" />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          statCards.map((card) => (
-            <Card key={card.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {card.title}
-                </CardTitle>
-                <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                    <card.icon className={`h-5 w-5 ${card.color}`} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{card.value}</div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-4">Quick Links</h2>
+    <div className="flex flex-col h-full">
+      <div className="flex-grow space-y-6">
+        <WelcomeHeader />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {quickLinks.map((link, index) => {
-            const Icon = [Usb, QrCode, CalendarOff, CalendarClock][index];
-            return (
-                <Card key={link.href} className="hover:bg-muted/50 transition-colors">
-                    <Link href={link.href}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">{link.title}</CardTitle>
-                            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                <Icon className="h-5 w-5" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground">{link.description}</p>
-                        </CardContent>
-                    </Link>
-                </Card>
-            )
-           })}
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16 mt-2" />
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            statCards.map((card) => (
+              <Card key={card.title}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {card.title}
+                  </CardTitle>
+                  <div className={`p-2 rounded-lg ${card.bgColor}`}>
+                      <card.icon className={`h-5 w-5 ${card.color}`} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{card.value}</div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight mb-4">Quick Links</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {quickLinks.map((link, index) => {
+              const Icon = [Usb, QrCode, CalendarOff, CalendarClock][index];
+              return (
+                  <Card key={link.href} className="hover:bg-muted/50 transition-colors">
+                      <Link href={link.href}>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium">{link.title}</CardTitle>
+                              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                  <Icon className="h-5 w-5" />
+                              </div>
+                          </CardHeader>
+                          <CardContent>
+                              <p className="text-xs text-muted-foreground">{link.description}</p>
+                          </CardContent>
+                      </Link>
+                  </Card>
+              )
+            })}
+          </div>
         </div>
       </div>
       <footer className="pt-8 text-center text-sm text-muted-foreground">
