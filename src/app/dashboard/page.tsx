@@ -6,6 +6,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { format } from 'date-fns';
 import type { AttendanceRecord } from '@/lib/types';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -14,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, UserCheck, UserX, UserMinus } from 'lucide-react';
+import { Users, UserCheck, UserX, UserMinus, Usb, QrCode, CalendarOff, CalendarClock, ArrowRight } from 'lucide-react';
 import WelcomeHeader from '@/components/dashboard/welcome-header';
 
 export default function DashboardPage() {
@@ -67,6 +68,13 @@ export default function DashboardPage() {
     { title: 'On Leave', value: stats.onLeave, icon: UserMinus, color: 'text-yellow-500', bgColor: 'bg-yellow-100 dark:bg-yellow-900/20' },
   ];
 
+  const quickLinks = [
+    { href: '/dashboard/nfc/external', title: 'External Scan', description: 'Use a USB scanner.', icon: Usb },
+    { href: '/dashboard/scan', title: 'QR Scan', description: 'Use your device camera.', icon: QrCode },
+    { href: '/dashboard/holidays', title: 'Manage Holidays', description: 'Add or remove holidays.', icon: CalendarOff },
+    { href: '/dashboard/records', title: 'View Records', description: 'Check attendance history.', icon: CalendarClock },
+  ]
+
   return (
     <div className="space-y-6">
       <WelcomeHeader />
@@ -100,6 +108,27 @@ export default function DashboardPage() {
             </Card>
           ))
         )}
+      </div>
+
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight mb-4">Quick Links</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {quickLinks.map(link => (
+             <Card key={link.href} className="hover:bg-muted/50 transition-colors">
+              <Link href={link.href}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{link.title}</CardTitle>
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                        <link.icon className="h-5 w-5" />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-xs text-muted-foreground">{link.description}</p>
+                </CardContent>
+              </Link>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );
